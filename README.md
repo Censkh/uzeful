@@ -9,12 +9,13 @@ Hooks for the backend.
 - logger
 - unified error handling interface
 
-`uze` allows you to access the context of a request with zero hassel in backend environments and provides helpers for logging, error handling & managing state
+`uze` allows you to access the context of a request with zero hassel in backend environments and provides helpers for
+logging, error handling & managing state
 
 ```javascript
 // route handler for getting user info
 export default async function getUserInfo() {
-  const { request } = await uzeContext();
+  const { request } = uzeContext();
   
   const db = await uzeDatabase();
   const user = await db.execute("...");
@@ -35,11 +36,12 @@ npm install uze
 
 ### Cloudflare Workers
 
-- make sure you [enable node compatibility](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) in your `wrangler.toml` file
+- make sure you [enable node compatibility](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) in your
+  `wrangler.toml` file
 
 ```typescript
-import { createUze } from "uze";
-import type { D1Database, Request } from "@cloudflare/workers-types";
+import {createUze} from "uze";
+import type {D1Database, Request} from "@cloudflare/workers-types";
 
 export interface Env {
   DB: D1Database;
@@ -52,8 +54,8 @@ export const uzeContext = uze.hooks.uzeContext;
 
 // code that processes requests
 const handler = async (): Promise<Response> => {
-  const context = await uzeContext();
-  ...
+  const context = uzeContext();
+...
 }
 
 export default {
@@ -75,11 +77,11 @@ export default {
 
 ```typescript
 
-import { createRouter } from "uze/router";
+import {createRouter} from "uze/router";
 
 const router = createRouter()
   .all("*", () => {
-    return Response.json({ message: "Hello World" });
+    return Response.json({message: "Hello World"});
   });
 
 export default {
@@ -101,26 +103,28 @@ export default {
 
 ### Making Hooks
 
-Making a hook is as simple as making a function with the prefix `uze`. No magic required. As long as you run these functions within the `handler` function you pass to `uze` you will be able to access the current request context. 
+Making a hook is as simple as making a function with the prefix `uze`. No magic required. As long as you run these
+functions within the `handler` function you pass to `uze` you will be able to access the current request context.
 
 ```typescript
 export const uzeDatabase = async () => {
-  const { env } = await uzeContext();
+  const { env } = uzeContext();
   return env.DB;
 }
 ```
 
 ### After Hooks
 
-You can use the `uzeAfter` hook to run code after the response has been created. This can be useful when you want to add headers to a response, such as CORS.
+You can use the `uzeAfter` hook to run code after the response has been created. This can be useful when you want to add
+headers to a response, such as CORS.
 
 ```typescript
-import { uzeAfter } from "uze";
-import { createRouter } from "uze/router";
+import {uzeAfter} from "uze";
+import {createRouter} from "uze/router";
 
 const router = createRouter()
   .all("*", async () => {
-    await uzeAfter((response) => {
+    uzeAfter((response) => {
       response.headers.set("Access-Control-Allow-Origin", "*");
     });
   })
@@ -132,12 +136,12 @@ const router = createRouter()
 A lot of the time you want to manage state related to a single request. `uze` provides a way to do this with `useState`.
 
 ```typescript
-import { uzeState, createStateKey } from "uze";
+import {uzeState, createStateKey} from "uze";
 
 export interface UserAccount {
   id: string;
   name: string;
-  }
+}
 
 const USER_ACCOUNT_KEY = createStateKey<UserAccount>("user-account");
 
@@ -158,9 +162,8 @@ export default async function getUserInfo() {
 
 #### With defaults
 
-
 ```typescript
-import { uzeState, createStateKey } from "uze";
+import {uzeState, createStateKey} from "uze";
 
 const EVENTS_KEY = createStateKey<string[]>("events", () => ["defaultEvent"]);
 
@@ -171,22 +174,23 @@ export default async function getUserInfo() {
   events.push("newEvent");
   console.log(events); // ["defaultEvent", "newEvent"]
 
-  ...
+...
 }
 ```
 
 ### Error Handling
 
-Uze exposes `SendableError` which provides a unified interface to handle errors. For the full documentation: https://www.npmjs.com/package/sendable-error
+Uze exposes `SendableError` which provides a unified interface to handle errors. For the full
+documentation: https://www.npmjs.com/package/sendable-error
 
 ```typescript
 import {SendableError} from "uze";
 
 export default async function getUserInfo() {
   const db = await uzeDatabase();
-  
+
   const user = await db.execute("...");
-  
+
   if (!user) {
     throw new SendableError({
       message: "User not found",
@@ -195,12 +199,13 @@ export default async function getUserInfo() {
       code: "users/not-found"
     });
   }
-  
-  ...
+
+...
 }
 ```
 
-**Note:** all errors are __private__ by default. This means the response body will contain and obfuscated error. To make an error public, set the `public` property to `true`.
+**Note:** all errors are __private__ by default. This means the response body will contain and obfuscated error. To make
+an error public, set the `public` property to `true`.
 
 ### Router
 
@@ -210,10 +215,10 @@ See the full documentation here: https://itty.dev/itty-router/routers/autorouter
 
 ```typescript
 
-import { createRouter } from "uze/router";
+import {createRouter} from "uze/router";
 
 const router = createRouter()
   .all("*", () => {
-    return Response.json({ message: "Hello World" });
+    return Response.json({message: "Hello World"});
   });
 ```

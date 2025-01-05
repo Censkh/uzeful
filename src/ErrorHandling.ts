@@ -6,6 +6,5 @@ export const errorToResponse = (error: Error) => {
   const response = Response.json(sendableError.toResponse(), {
     status: sendableError.getStatus(),
   });
-  response.headers.set("X-Trace-Id", sendableError.getTraceId());
   return response;
 };

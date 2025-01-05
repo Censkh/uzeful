@@ -2,13 +2,17 @@
 import chalk from "chalk";
 import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
-export interface OutputOptions {
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const SINK_STORAGE = new AsyncLocalStorage<Sink>();
+
+export interface Sink {
   out: typeof console;
   disableTime?: boolean;
   disableLevelLabel?: boolean;
 }
 
-const outputOptions: OutputOptions = {
+const DEFAULT_SINK: Sink = {
   out: console,
   disableTime: process.env.NODE_ENV !== "production",
 };
@@ -31,14 +35,6 @@ const stripAnsi = (string: string) => {
 };
 
 export type Severity = "info" | "warn" | "error" | "debug";
-
-const stringifyValue = (value: any) => {
-  let resolvedValue = value;
-  if (value && typeof value.message === "string") {
-    resolvedValue = value.message;
-  }
-  return JSON.stringify(resolvedValue);
-};
 
 const generateInfoString = (info: any) => {
   if (info === null || info === undefined) {
@@ -150,21 +146,29 @@ const writeMessage = (level: Severity, source: string, message: string) => {
   if (process.env.NODE_ENV === "test" && /test/i.test(process.env.VERBOSE || "")) {
     return;
   }
-  let out = outputOptions.out[level];
+  const sink = { ...DEFAULT_SINK, ...SINK_STORAGE.getStore() };
+  let out = sink.out[level];
   if (!out) {
     out = console[level];
-    out(`Logger output is missing '${level}' function`, outputOptions.out);
+    out(`Logger output is missing '${level}' function`, sink.out);
   }
   const prefix = colorFromLevel(level)(level.toString().substring(0, 1));
 
-  message.split(/\n/g).forEach((text, index) => {
-    const start = `${outputOptions.disableTime ? "" : `[${chalk.gray(formattedNow())}] `}${outputOptions.disableLevelLabel ? "" : `${prefix} `}${source} - `;
-    out(`${index === 0 ? start : " ".repeat(stripAnsi(start).length)}${text}`);
+  const newMessage = message.split(/\n/g).map((text, index) => {
+    const start = `${sink.disableTime ? "" : `[${chalk.gray(formattedNow())}] `}${sink.disableLevelLabel ? "" : `${prefix} `}${source} - `;
+    return `${index === 0 ? start : " ".repeat(stripAnsi(start).length)}${text}`;
   });
+  out(newMessage.join("\n"));
 };
 
 const createLogFunction = (level: Severity) => {
-  return (source: string, message: string, info?: any, error?: Error, options?: { errorInfo?: any }) => {
+  return (
+    source: string,
+    message: string,
+    info?: any,
+    error?: Error,
+    options?: { errorInfo?: any },
+  ) => {
     return log(level, source, message, info, error, options);
   };
 };
@@ -183,12 +187,12 @@ export const logger = Object.assign(
     error,
     assert,
   }),
-  {
-    setOutput: (options: OutputOptions) => {
-      Object.assign(outputOptions, options);
-    },
-  },
+  {},
 );
+
+export const withSink = <R>(sink: Sink, fn: () => R): R => {
+  return SINK_STORAGE.run(sink, fn);
+};
 
 setErrorLogger(({ source, message, error, errorInfo, info }) => {
   return logger().error(source, message, info, error, { errorInfo: errorInfo });

@@ -1,7 +1,7 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-import { setErrorLogger } from "sendable-error";
-import type { BaseRequest } from "./Types";
-import { logger } from "./logger/Logger";
+import {AsyncLocalStorage} from "node:async_hooks";
+import {setErrorLogger} from "sendable-error";
+import type {BaseRequest} from "./Types";
+import {logger} from "./logger/Logger";
 
 export type WithParams<TRequest> = TRequest & {
   params?: Record<string, string>;
@@ -9,25 +9,26 @@ export type WithParams<TRequest> = TRequest & {
 
 export interface Context<TEnv = unknown, TRequest extends BaseRequest = Request> {
   request: WithParams<TRequest>;
+  startMs: number;
   env: TEnv;
-  state: any;
+  state: unknown;
   waitUntil: (promise: Promise<any>) => void;
   rawContext: any;
 }
 
 export type ContextOptions<TEnv = unknown, TRequest extends BaseRequest = Request> = Omit<
   Context<TEnv, TRequest>,
-  "request" | "state"
+  "request" | "state" | "startMs"
 > & {
   request: TRequest;
 };
 
-const contextStorage = new AsyncLocalStorage<Context>();
+const CONTEXT_STORAGE = new AsyncLocalStorage<Context>();
 
 export const createUzeContextHook =
   <TEnv = unknown, TRequest extends BaseRequest = Request>() =>
-  async (): Promise<Context<TEnv, TRequest>> => {
-    const context = contextStorage.getStore();
+  (): Context<TEnv, TRequest> => {
+    const context = CONTEXT_STORAGE.getStore();
     if (!context) {
       throw new Error("Cannot use context outside of a context block");
     }
@@ -53,11 +54,12 @@ export const runWithContext = async <TEnv, TRequest extends BaseRequest>(
 
   const context: Context = {
     ...options,
+    startMs: Date.now(),
     // @ts-ignore
     request: options.request,
     state: {},
   };
-  return contextStorage.run(context, fn);
+  return CONTEXT_STORAGE.run(context, fn);
 };
 
 export const uzeContextInternal = createUzeContextHook();
