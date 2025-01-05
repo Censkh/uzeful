@@ -11,6 +11,11 @@
     "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
     "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."
   },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Censkh/uze.git"
+  },
+  "homepage": "https://github.com/Censkh/uze",
   "exports": {
     ".": {
       "workerd": "./src/index.ts",
@@ -25,9 +30,17 @@
       "default": "./src/router/index.ts"
     }
   },
-  "keywords": ["typescript", "backend", "hooks", "cloudflare", "logging", "errors", "state", "routing"],
+  "keywords": [
+    "typescript",
+    "backend",
+    "hooks",
+    "cloudflare",
+    "logging",
+    "errors",
+    "state",
+    "routing"
+  ],
   "files": ["LICENSE", "README.md", "src/"],
-  "repository": "https://github.com/Censkh/uze",
   "author": "James Waterhouse <09jwater@gmail.com>",
   "license": "MIT",
   "dependencies": {
