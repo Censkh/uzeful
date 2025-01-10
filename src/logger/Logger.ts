@@ -162,13 +162,7 @@ const writeMessage = (level: Severity, source: string, message: string) => {
 };
 
 const createLogFunction = (level: Severity) => {
-  return (
-    source: string,
-    message: string,
-    info?: any,
-    error?: Error,
-    options?: { errorInfo?: any },
-  ) => {
+  return (source: string, message: string, info?: any, error?: Error, options?: { errorInfo?: any }) => {
     return log(level, source, message, info, error, options);
   };
 };

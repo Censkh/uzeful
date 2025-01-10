@@ -1,7 +1,7 @@
-import {AsyncLocalStorage} from "node:async_hooks";
-import {setErrorLogger} from "sendable-error";
-import type {BaseRequest} from "./Types";
-import {logger} from "./logger/Logger";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { setErrorLogger } from "sendable-error";
+import type { BaseRequest } from "./Types";
+import { logger } from "./logger/Logger";
 
 export type WithParams<TRequest> = TRequest & {
   params?: Record<string, string>;

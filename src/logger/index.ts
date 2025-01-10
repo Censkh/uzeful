@@ -1,13 +1,11 @@
-import {uzeContextInternal} from "../Context";
-import type {BaseRequest, Middleware} from "../Types";
-import {uzeAfter, uzeRequestId} from "../index";
-import {logger} from "./Logger";
+import { uzeContextInternal } from "../Context";
+import type { BaseRequest, Middleware } from "../Types";
+import { uzeAfter, uzeRequestId } from "../index";
+import { logger } from "./Logger";
 
 export * from "./Logger";
 
-export type RequestInfoGetter = (
-  request: BaseRequest,
-) => Record<string, string | number | undefined | null>;
+export type RequestInfoGetter = (request: BaseRequest) => Record<string, string | number | undefined | null>;
 const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => ({
   method: request.method.toUpperCase(),
   url: request.url,

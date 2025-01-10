@@ -1,3 +1,5 @@
+import type { ContextOptions, createUzeContextHook } from "./Context";
+
 export interface BaseHeaders {
   get(name: string): string | null;
   has(name: string): boolean;
@@ -13,3 +15,14 @@ export interface BaseRequest {
 
 export type Middleware = () => void | Promise<void>;
 export type Route = () => Promise<Response> | Response;
+
+export interface Uze<TEnv, TRequest extends BaseRequest = Request> {
+  handle: (options: ContextOptions<TEnv, TRequest>, handler: () => Promise<Response>) => Promise<Response>;
+  hooks: {
+    uzeContext: ReturnType<typeof createUzeContextHook<TEnv, TRequest>>;
+  };
+}
+
+export interface UzeAdapter<TEnv, TRequest extends BaseRequest = Request> {
+  handler: (request: TRequest) => Promise<Response>;
+}
