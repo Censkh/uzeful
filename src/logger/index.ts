@@ -13,6 +13,7 @@ const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => ({
 
 export interface TraceMiddlewareOptions {
   requestInfoGetter?: RequestInfoGetter;
+  extraRequestInfoGetter?: RequestInfoGetter;
 }
 
 export const traceMiddleware =
@@ -20,13 +21,24 @@ export const traceMiddleware =
   async () => {
     const requestInfoGetter = options?.requestInfoGetter ?? DEFAULT_REQUEST_INFO_GETTER;
     const { request, startMs } = uzeContextInternal();
-    const requestInfo: any = requestInfoGetter(request);
-    requestInfo.requestId = uzeRequestId();
 
-    logger().info("App", `Calling ${request.method.toUpperCase()} ${request.url}`, requestInfo);
+    const calculateRequestInfo = () => {
+      const requestInfo: any = requestInfoGetter(request);
+      if (options?.extraRequestInfoGetter) {
+        Object.assign(requestInfo, options.extraRequestInfoGetter(request));
+      }
+
+      requestInfo.requestId = uzeRequestId();
+      return requestInfo;
+    }
+
+
+
+    logger().info("App", `Calling ${request.method.toUpperCase()} ${request.url}`, calculateRequestInfo());
 
     uzeAfter((response, error) => {
       const end = Date.now();
+      const requestInfo = calculateRequestInfo();
       requestInfo.durationMs = end - startMs;
       if (error) {
         logger().error(
