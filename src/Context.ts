@@ -18,8 +18,10 @@ export interface Context<TEnv = unknown, TRequest extends BaseRequest = Request>
 
 export type ContextOptions<TEnv = unknown, TRequest extends BaseRequest = Request> = Omit<
   Context<TEnv, TRequest>,
-  "request" | "state" | "startMs"
+  "request" | "state" | "startMs" | "waitUntil" | "rawContext"
 > & {
+  waitUntil?: (promise: Promise<any>) => void;
+  rawContext?: any;
   request: TRequest;
 };
 
