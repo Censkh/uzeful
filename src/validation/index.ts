@@ -1,7 +1,7 @@
 import SendableError from "sendable-error";
-import {parseZodError} from "./ValidationUtils";
-import {uzeContextInternal} from "../Context";
 import type * as zod from "zod";
+import { uzeContextInternal } from "../Context";
+import { parseZodError } from "./ValidationUtils";
 
 export const uzeValidatedBody = async <T>(schema: zod.ZodType<T>) => {
   const { request } = uzeContextInternal();

@@ -10,9 +10,7 @@ export const parseZodError = (error: ZodError | ZodIssue): ParsedValidationError
   const mainError: any = error;
 
   if (!mainError.code) {
-    const [childMainError, ...subErrors] = (mainError.unionErrors ?? mainError.errors).map(
-      parseZodError,
-    );
+    const [childMainError, ...subErrors] = (mainError.unionErrors ?? mainError.errors).map(parseZodError);
     if (subErrors.length) {
       childMainError.details.errors = subErrors;
     }

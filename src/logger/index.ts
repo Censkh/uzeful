@@ -30,9 +30,7 @@ export const traceMiddleware =
 
       requestInfo.requestId = uzeRequestId();
       return requestInfo;
-    }
-
-
+    };
 
     logger().info("App", `Calling ${request.method.toUpperCase()} ${request.url}`, calculateRequestInfo());
 

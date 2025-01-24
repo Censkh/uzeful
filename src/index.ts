@@ -1,4 +1,4 @@
-export { type Middleware, type Route, type Uze, type UzeAdapter } from "./Types";
+export type { Middleware, Route, Uze, UzeAdapter } from "./Types";
 export { SendableError, ErrorCode } from "sendable-error";
 export { uzeState, type StateKey, createStateKey } from "./State";
 export { uzeAfter } from "./After";
