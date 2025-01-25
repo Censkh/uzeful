@@ -1,4 +1,5 @@
 import { createStateKey, uzeState } from "./State";
+
 const EXTRA_HEADERS = createStateKey<Record<string, string>>("headers", () => ({}));
 
 export const postProcessResponse = (response: Response) => {
