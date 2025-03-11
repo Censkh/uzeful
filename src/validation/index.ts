@@ -20,7 +20,7 @@ export const uzeValidated = async <T>(value: any, schema: zod.ZodType<T>) => {
 
 export const uzeValidatedBody = async <T>(schema: zod.ZodType<T>) => {
   const { request } = uzeContextInternal();
-  let body = {};
+  let body: any = {};
 
   try {
     body = await request.json();

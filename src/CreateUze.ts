@@ -1,11 +1,11 @@
 import { AFTER_CALLBACKS } from "./After";
 import { createUzeContextHook, runWithContext } from "./Context";
-import { errorToResponse } from "./ErrorHandling";
 import { postProcessResponse } from "./PostProcessResponse";
 import { uzeState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
 import { isResponse } from "./Utils";
 import { logger } from "./logger";
+import SendableError from "sendable-error";
 
 export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
   return {
@@ -16,7 +16,7 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
         try {
           response = await handler();
         } catch (error: any) {
-          let response = errorToResponse(error);
+          let response = SendableError.of(error).toResponse();
 
           const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
           for (const callback of getAfterCallbacks()) {
@@ -27,7 +27,7 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
               }
             } catch (error: any) {
               logger().error("afterCallback", "Error in afterCallback", {}, error);
-              return postProcessResponse(errorToResponse(error));
+              return postProcessResponse(SendableError.of(error).toResponse());
             }
           }
           return postProcessResponse(response);
@@ -44,7 +44,7 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
             }
           } catch (error: any) {
             logger().error("afterCallback", "Error in afterCallback", {}, error);
-            return postProcessResponse(errorToResponse(error));
+            return postProcessResponse(SendableError.of(error).toResponse());
           }
         }
 
