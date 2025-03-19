@@ -3,7 +3,7 @@ import type * as zod from "zod";
 import { uzeContextInternal } from "../Context";
 import { parseZodError } from "./ValidationUtils";
 
-export const uzeValidated = async <T>(value: any, schema: zod.ZodType<T>) => {
+export const uzeValidated = async <T>(value: any, schema: zod.ZodType<T>): Promise<T> => {
   try {
     return await schema.parseAsync(value);
   } catch (error: any) {
@@ -18,7 +18,7 @@ export const uzeValidated = async <T>(value: any, schema: zod.ZodType<T>) => {
   }
 };
 
-export const uzeValidatedBody = async <T>(schema: zod.ZodType<T>) => {
+export const uzeValidatedBody = async <T>(schema: zod.ZodType<T>): Promise<T> => {
   const { request } = uzeContextInternal();
   let body: any = {};
 
@@ -28,7 +28,7 @@ export const uzeValidatedBody = async <T>(schema: zod.ZodType<T>) => {
   return uzeValidated(body, schema);
 };
 
-export const uzeValidatedQuery = async <T>(schema: zod.ZodType<T>) => {
+export const uzeValidatedQuery = async <T>(schema: zod.ZodType<T>): Promise<T> => {
   const { request } = uzeContextInternal();
   const searchParams = new URL(request.url).searchParams;
 
@@ -48,7 +48,7 @@ export const uzeValidatedQuery = async <T>(schema: zod.ZodType<T>) => {
   return uzeValidated(parsedParams, schema);
 };
 
-export const uzeValidatedParams = async <T>(schema: zod.ZodType<T>) => {
+export const uzeValidatedParams = async <T>(schema: zod.ZodType<T>): Promise<T> => {
   const { request } = uzeContextInternal();
   return uzeValidated(request.params, schema);
 };

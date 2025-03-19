@@ -42,9 +42,9 @@ export const runWithContext = async <TEnv, TRequest extends BaseRequest>(
   fn: () => Response | Promise<Response>,
 ) => {
   setErrorLogger((options) => {
-    const { error, message, info, errorInfo, source } = options;
+    const { error, message, info, errorInfo } = options;
     logger().error(
-      source,
+      "Error",
       message,
       {
         ...info,

@@ -188,6 +188,6 @@ export const withSink = <R>(sink: Sink, fn: () => R): R => {
   return SINK_STORAGE.run(sink, fn);
 };
 
-setErrorLogger(({ source, message, error, errorInfo, info }) => {
-  return logger().error(source, message, info, error, { errorInfo: errorInfo });
+setErrorLogger(({ message, error, errorInfo, info }) => {
+  return logger().error("Error", message, info, error, { errorInfo: errorInfo });
 });
