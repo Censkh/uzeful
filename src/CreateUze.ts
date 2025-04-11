@@ -1,11 +1,11 @@
 import SendableError from "sendable-error";
 import { AFTER_CALLBACKS } from "./After";
 import { createUzeContextHook, runWithContext } from "./Context";
+import { logger } from "./logger";
 import { postProcessResponse } from "./PostProcessResponse";
 import { uzeState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
 import { isResponse } from "./Utils";
-import { logger } from "./logger";
 
 export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
   return {

@@ -34,8 +34,21 @@
       "default": "./src/validation/index.ts"
     }
   },
-  "keywords": ["typescript", "backend", "hooks", "cloudflare", "logging", "errors", "state", "routing"],
-  "files": ["LICENSE", "README.md", "src/"],
+  "keywords": [
+    "typescript",
+    "backend",
+    "hooks",
+    "cloudflare",
+    "logging",
+    "errors",
+    "state",
+    "routing"
+  ],
+  "files": [
+    "LICENSE",
+    "README.md",
+    "src/"
+  ],
   "author": "James Waterhouse <09jwater@gmail.com>",
   "license": "MIT",
   "dependencies": {

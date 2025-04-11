@@ -1,6 +1,6 @@
 import { uzeContextInternal } from "../Context";
-import type { BaseRequest, Middleware } from "../Types";
 import { uzeAfter, uzeRequestId } from "../index";
+import type { BaseRequest, Middleware } from "../Types";
 import { logger } from "./Logger";
 
 export * from "./Logger";

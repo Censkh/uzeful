@@ -1,8 +1,8 @@
 //@ts-ignore
-import chalk from "chalk";
-import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import chalk from "chalk";
+import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
 const SINK_STORAGE = new AsyncLocalStorage<Sink>();
 
