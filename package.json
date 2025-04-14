@@ -52,7 +52,7 @@
   "author": "James Waterhouse <09jwater@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^5.4.1",
+    "chalk": "4.1.2",
     "itty-router": "^5.0.18",
     "sendable-error": "^0.7.0"
   },
