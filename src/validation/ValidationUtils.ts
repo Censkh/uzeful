@@ -1,4 +1,4 @@
-import type { ZodError, ZodIssue } from "zod";
+import { prettifyError, treeifyError, ZodError, ZodIssue } from "zod";
 
 interface ParsedValidationError {
   code: string;
@@ -6,45 +6,24 @@ interface ParsedValidationError {
   message: string;
 }
 
-export const parseZodError = (error: ZodError | ZodIssue): ParsedValidationError => {
-  const mainError: any = error;
+const parseZodIssue = (issue: ZodIssue) => {
+  return {
+    path: issue.path.join("."),
+    message: issue.message,
+    code: issue.code ? `validation/${issue.code.replace(/_/g, "-")}` : "validation/validation-error",
+  };
+};
 
-  if (!mainError.code) {
-    const [childMainError, ...subErrors] = (mainError.unionErrors ?? mainError.errors).map(parseZodError);
-    if (subErrors.length) {
-      childMainError.details.errors = subErrors;
-    }
-    return childMainError;
-  }
-
-  const code = `validation/${mainError.code.replace(/_/g, "-")}`;
-
-  const details = {} as any;
-
-  let message = mainError.message;
-  if (message === "Required") {
-    message = `Missing required field, expected '${mainError.expected}'`;
-  }
-
-  const subErrors = mainError.unionErrors ?? mainError.errors;
-
-  if (subErrors?.length) {
-    details.errors = subErrors.map(parseZodError);
-  }
-
-  const path = mainError.path.join(".");
+export const parseZodError = (error: ZodError): ParsedValidationError => {
+  const mainError = error;
+  const parsedIssues = mainError.issues.map(parseZodIssue);
 
   return {
-    code: code,
-    message: `${message}${path ? ` @ ${path}` : ""}`,
+    code: parsedIssues[0].code,
+    message: parsedIssues[0].message,
     details: {
-      ...mainError,
-      code: undefined,
-      message: undefined,
-      errors: undefined,
-      unionErrors: undefined,
-      ...details,
-      path: path,
+      path: parsedIssues[0].path,
+      issues: parsedIssues,
     },
   };
 };
