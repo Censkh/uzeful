@@ -3,7 +3,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { program } from "commander";
-import { Project, PropertyAccessExpression, SyntaxKind } from "ts-morph";
+import { Project, SyntaxKind } from "ts-morph";
 
 program.name("uze");
 
