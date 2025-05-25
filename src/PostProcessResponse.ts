@@ -1,21 +1,32 @@
 import { createStateKey, uzeState } from "./State";
 
-const EXTRA_HEADERS = createStateKey<Record<string, string>>("headers", () => ({}));
+type ResponseModifier = (response: Response) => void;
+
+const RESPONSE_MODIFIERS = createStateKey<ResponseModifier[]>("responseModifiers", () => []);
 
 export const postProcessResponse = (response: Response) => {
-  const [getExtraHeaders] = uzeState(EXTRA_HEADERS);
-  const extraHeaders = getExtraHeaders();
+  const [getModifiers] = uzeState(RESPONSE_MODIFIERS);
+  const modifiers = getModifiers();
+  if (!modifiers || modifiers.length === 0) {
+    return response;
+  }
 
-  try {
-    for (const [key, value] of Object.entries(extraHeaders)) {
-      response.headers.set(key, value);
-    }
-  } catch (error: any) {}
+  const modifiedResponse = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 
-  return response;
+  for (const modifier of modifiers) {
+    modifier(modifiedResponse);
+  }
+
+  return modifiedResponse;
 };
 
-export const uzeSetHeaders = (headers: Record<string, string>) => {
-  const [getHeaders, setHeaders] = uzeState(EXTRA_HEADERS);
-  setHeaders(headers);
+export const uzeResponseModifier = (modifier: ResponseModifier) => {
+  const [, setModifiers] = uzeState(RESPONSE_MODIFIERS);
+  setModifiers((prev) => {
+    return [...prev, modifier];
+  });
 };

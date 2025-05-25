@@ -1,11 +1,7 @@
 import SendableError from "sendable-error";
-import { AFTER_CALLBACKS } from "./After";
+import { runAfterCallbacks } from "./After";
 import { createUzeContextHook, runWithContext } from "./Context";
-import { logger } from "./logger";
-import { postProcessResponse } from "./PostProcessResponse";
-import { uzeState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
-import { isResponse } from "./Utils";
 
 export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
   return {
@@ -16,39 +12,13 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
         try {
           response = await handler();
         } catch (error: any) {
-          let response = SendableError.of(error).toResponse();
-
-          const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
-          for (const callback of getAfterCallbacks()) {
-            try {
-              const newResponse = await callback(response, error);
-              if (isResponse(newResponse)) {
-                response = newResponse;
-              }
-            } catch (error: any) {
-              logger().error("afterCallback", "Error in afterCallback", {}, error);
-              return postProcessResponse(SendableError.of(error).toResponse());
-            }
-          }
-          return postProcessResponse(response);
+          const errorResponse = SendableError.of(error).toResponse();
+          return runAfterCallbacks(errorResponse, error);
         }
         if (!response) {
           throw new Error("No response");
         }
-        const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
-        for (const callback of getAfterCallbacks()) {
-          try {
-            const newResponse = await callback(response, undefined);
-            if (isResponse(newResponse)) {
-              response = newResponse;
-            }
-          } catch (error: any) {
-            logger().error("afterCallback", "Error in afterCallback", {}, error);
-            return postProcessResponse(SendableError.of(error).toResponse());
-          }
-        }
-
-        return postProcessResponse(response);
+        return runAfterCallbacks(response, undefined);
       });
     },
     hooks: {
