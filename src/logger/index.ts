@@ -1,5 +1,5 @@
 import { uzeContextInternal } from "../Context";
-import { uzeAfter, uzeRequestId } from "../index";
+import { Priority, uzeAfter, uzeRequestId } from "../index";
 import type { BaseRequest, Middleware } from "../Types";
 import { logger } from "./Logger";
 
@@ -34,29 +34,32 @@ export const traceMiddleware =
 
     logger().info("App", `Calling ${request.method.toUpperCase()} ${request.url}`, calculateRequestInfo());
 
-    uzeAfter((response, error) => {
-      const end = Date.now();
-      const requestInfo = calculateRequestInfo();
-      requestInfo.durationMs = end - startMs;
-      if (error) {
-        logger().error(
-          "App",
-          `Failed calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
-          {
-            ...requestInfo,
-            status: response.status,
-          },
-          error,
-        );
-      } else {
-        logger().info(
-          "App",
-          `Success calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
-          {
-            ...requestInfo,
-            status: response.status,
-          },
-        );
-      }
-    });
+    uzeAfter(
+      (response, error) => {
+        const end = Date.now();
+        const requestInfo = calculateRequestInfo();
+        requestInfo.durationMs = end - startMs;
+        if (error) {
+          logger().error(
+            "App",
+            `Failed calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
+            {
+              ...requestInfo,
+              status: response.status,
+            },
+            error,
+          );
+        } else {
+          logger().info(
+            "App",
+            `Success calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
+            {
+              ...requestInfo,
+              status: response.status,
+            },
+          );
+        }
+      },
+      { priority: Priority.LATE },
+    );
   };

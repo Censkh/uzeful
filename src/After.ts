@@ -5,11 +5,11 @@ import { createStateKey, uzeState } from "./State";
 import { isResponse } from "./Utils";
 
 export enum Priority {
-  LOWEST = -2,
-  LOW = -1,
+  LAST = -2,
+  LATE = -1,
   NORMAL = 0,
-  HIGH = 1,
-  HIGHEST = 2,
+  EARLY = 1,
+  FIRST = 2,
 }
 
 export type AfterCallback = (
@@ -20,16 +20,21 @@ export type AfterCallback = (
 type AfterCallbacksByPriority = Record<Priority, AfterCallback[]>;
 
 export const AFTER_CALLBACKS = createStateKey<AfterCallbacksByPriority>("afterCallbacks", () => ({
-  [Priority.LOWEST]: [],
-  [Priority.LOW]: [],
+  [Priority.LAST]: [],
+  [Priority.LATE]: [],
   [Priority.NORMAL]: [],
-  [Priority.HIGH]: [],
-  [Priority.HIGHEST]: [],
+  [Priority.EARLY]: [],
+  [Priority.FIRST]: [],
 }));
 
-export const uzeAfter = (callback: AfterCallback, priority: Priority = Priority.NORMAL) => {
+export interface AfterOptions {
+  priority?: Priority;
+}
+
+export const uzeAfter = (callback: AfterCallback, options: AfterOptions = {}) => {
   const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
   const callbacks = getAfterCallbacks();
+  const priority = options.priority ?? Priority.NORMAL;
   callbacks[priority].push(callback);
 };
 
@@ -38,7 +43,7 @@ export const runAfterCallbacks = async (response: Response, error: Error | undef
   const callbacks = getAfterCallbacks();
 
   // Execute callbacks in priority order from highest to lowest
-  for (const priority of [Priority.HIGHEST, Priority.HIGH, Priority.NORMAL, Priority.LOW, Priority.LOWEST]) {
+  for (const priority of [Priority.FIRST, Priority.EARLY, Priority.NORMAL, Priority.LATE, Priority.LAST]) {
     for (const callback of callbacks[priority]) {
       try {
         const newResponse = await callback(response, error);
