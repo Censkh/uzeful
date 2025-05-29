@@ -1,6 +1,5 @@
-//@ts-ignore
-
-import { AsyncLocalStorage } from "node:async_hooks";
+// biome-ignore lint/style/useNodejsImportProtocol: not supported in all runtimes
+import { AsyncLocalStorage } from "async_hooks";
 import chalk from "chalk";
 import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
