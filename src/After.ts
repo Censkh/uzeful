@@ -45,7 +45,6 @@ export const runAfterCallbacks = async (response: Response, error: Error | undef
   // Execute callbacks in priority order from highest to lowest
   for (const priority of [Priority.FIRST, Priority.EARLY, Priority.NORMAL, Priority.LATE, Priority.LAST]) {
     for (const callback of callbacks[priority]) {
-      console.log(callback.toString());
       try {
         const newResponse = await callback(response, error);
         if (isResponse(newResponse)) {
