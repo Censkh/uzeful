@@ -26,3 +26,23 @@ export interface Uze<TEnv, TRequest extends BaseRequest = Request> {
 export interface UzeAdapter<TEnv, TRequest extends BaseRequest = Request> {
   handler: (request: TRequest) => Promise<Response>;
 }
+
+export interface CookieStore {
+  get(name: string): { name: string; value: string } | undefined;
+  getAll(): { name: string; value: string }[];
+  has(name: string): boolean;
+  set(
+    name: string,
+    value: string,
+    options?: {
+      expires?: Date;
+      maxAge?: number;
+      domain?: string;
+      path?: string;
+      secure?: boolean;
+      httpOnly?: boolean;
+      sameSite?: "strict" | "lax" | "none";
+    },
+  ): void;
+  delete(name: string): void;
+}

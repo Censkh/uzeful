@@ -11,11 +11,12 @@ export const postProcessResponse = (response: Response) => {
     return response;
   }
 
-  const modifiedResponse = new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
-  });
+  if (response.status === 101) {
+    // 101 Switching Protocols is a special case where we don't modify the response
+    return response;
+  }
+
+  const modifiedResponse = response.clone() as Response;
 
   for (const modifier of modifiers) {
     modifier(modifiedResponse);
