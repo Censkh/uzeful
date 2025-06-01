@@ -1,4 +1,4 @@
-# uze
+# uzeful
 
 Hooks for the backend.
 
@@ -40,7 +40,7 @@ npm install uze
   `wrangler.toml` file
 
 ```typescript
-import {createUze} from "uze";
+import {createUze} from "uzeful";
 import type {D1Database, Request} from "@cloudflare/workers-types";
 
 export interface Env {
@@ -77,7 +77,7 @@ export default {
 
 ```typescript
 
-import {createRouter} from "uze/router";
+import {createRouter} from "uzeful/router";
 
 const router = createRouter()
   .all("*", () => {
@@ -119,8 +119,8 @@ You can use the `uzeAfter` hook to run code after the response has been created.
 headers to a response, such as CORS.
 
 ```typescript
-import {uzeAfter} from "uze";
-import {createRouter} from "uze/router";
+import {uzeAfter} from "uzeful";
+import {createRouter} from "uzeful/router";
 
 const router = createRouter()
   .all("*", async () => {
@@ -136,7 +136,7 @@ const router = createRouter()
 A lot of the time you want to manage state related to a single request. `uze` provides a way to do this with `useState`.
 
 ```typescript
-import {uzeState, createStateKey} from "uze";
+import {uzeState, createStateKey} from "uzeful";
 
 export interface UserAccount {
   id: string;
@@ -163,7 +163,7 @@ export default async function getUserInfo() {
 #### With defaults
 
 ```typescript
-import {uzeState, createStateKey} from "uze";
+import {uzeState, createStateKey} from "uzeful";
 
 const EVENTS_KEY = createStateKey<string[]>("events", () => ["defaultEvent"]);
 
@@ -184,7 +184,7 @@ Uze exposes `SendableError` which provides a unified interface to handle errors.
 documentation: https://www.npmjs.com/package/sendable-error
 
 ```typescript
-import {SendableError} from "uze";
+import {SendableError} from "uzeful";
 
 export default async function getUserInfo() {
   const db = await uzeDatabase();
@@ -215,7 +215,7 @@ See the full documentation here: https://itty.dev/itty-router/routers/autorouter
 
 ```typescript
 
-import {createRouter} from "uze/router";
+import {createRouter} from "uzeful/router";
 
 const router = createRouter()
   .all("*", () => {
