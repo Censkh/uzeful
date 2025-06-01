@@ -1,6 +1,6 @@
 {
   "name": "uzeful",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "src/index.ts",
   "description": "Hooks for the backend",
   "sideEffects": false,
@@ -13,9 +13,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:Censkh/uze.git"
+    "url": "git@github.com:Censkh/uzeful.git"
   },
-  "homepage": "https://github.com/Censkh/uze",
+  "homepage": "https://github.com/Censkh/uzeful",
   "exports": {
     ".": {
       "workerd": "./src/index.ts",
