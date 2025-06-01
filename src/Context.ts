@@ -20,7 +20,7 @@ export type ContextOptions<TEnv = unknown, TRequest extends BaseRequest = Reques
   Context<TEnv, TRequest>,
   "request" | "state" | "startMs" | "waitUntil" | "rawContext"
 > & {
-  waitUntil?: (promise: Promise<any>) => void;
+  waitUntil: (promise: Promise<any>) => void;
   rawContext?: any;
   request: TRequest;
 };
@@ -54,14 +54,14 @@ export const runWithContext = async <TEnv, TRequest extends BaseRequest>(
     );
   });
 
-  const context: Context = {
+  const context = {
     ...options,
     startMs: Date.now(),
     // @ts-ignore
     request: options.request,
     state: {},
-  };
-  return CONTEXT_STORAGE.run(context, fn);
+  } satisfies Context;
+  return CONTEXT_STORAGE.run(context as any, fn);
 };
 
 export const uzeContextInternal = createUzeContextHook();
