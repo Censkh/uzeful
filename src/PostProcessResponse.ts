@@ -11,8 +11,13 @@ export const postProcessResponse = (response: Response) => {
     return response;
   }
 
+  // 101 Switching Protocols is a special case where we don't modify the response
   if (response.status === 101) {
-    // 101 Switching Protocols is a special case where we don't modify the response
+    return response;
+  }
+
+  // also don't modify responses that are redirects
+  if (response.status >= 300 && response.status < 400) {
     return response;
   }
 
