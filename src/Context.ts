@@ -12,7 +12,7 @@ export interface Context<TEnv = unknown, TRequest extends BaseRequest = Request>
   startMs: number;
   env: TEnv;
   state: unknown;
-  waitUntil: (promise: Promise<any>) => void;
+  waitUntil: (promiseOrFunction: Promise<any> | (() => Promise<any>)) => void;
   rawContext: any;
 }
 
@@ -54,11 +54,20 @@ export const runWithContext = async <TEnv, TRequest extends BaseRequest>(
     );
   });
 
+  const { request, waitUntil, ...otherOptions } = options;
+
   const context = {
-    ...options,
+    ...otherOptions,
+    waitUntil: (promiseOrFunction) => {
+      if (typeof promiseOrFunction === "function") {
+        return waitUntil(promiseOrFunction());
+      } else {
+        return waitUntil(promiseOrFunction);
+      }
+    },
     startMs: Date.now(),
     // @ts-ignore
-    request: options.request,
+    request: request,
     state: {},
   } satisfies Context;
   return CONTEXT_STORAGE.run(context as any, fn);
