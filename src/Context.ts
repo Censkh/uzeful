@@ -32,7 +32,7 @@ export const createUzeContextHook =
   (): Context<TEnv, TRequest> => {
     const context = CONTEXT_STORAGE.getStore();
     if (!context) {
-      throw new Error("Cannot use context outside of a context block");
+      throw new Error(`Cannot use context outside of a context block: ${new Error().stack}`);
     }
     return context as any;
   };
