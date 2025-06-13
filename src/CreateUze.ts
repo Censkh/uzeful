@@ -12,8 +12,9 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
         try {
           response = await handler();
         } catch (error: any) {
-          const errorResponse = SendableError.of(error).toResponse();
-          return runAfterCallbacks(errorResponse, error);
+          const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
+          const resolvedError = error instanceof Response ? (error as any).cause : error;
+          return runAfterCallbacks(errorResponse, resolvedError);
         }
         if (!response) {
           throw new Error("No response");
