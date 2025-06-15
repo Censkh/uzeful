@@ -3,7 +3,7 @@ import type { Router } from "./router";
 export { ErrorCode, SendableError } from "sendable-error";
 export { Priority, uzeAfter } from "./After";
 export * from "./BuiltinHooks";
-export { type Context, createUzeContextHook, runWithContext } from "./Context";
+export { type Context, createUzeContextHook } from "./Context";
 export { uzeCookies } from "./Cookies";
 export { createUze } from "./CreateUze";
 export { uzeResponseModifier } from "./PostProcessResponse";

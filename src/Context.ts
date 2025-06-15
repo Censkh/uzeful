@@ -37,9 +37,9 @@ export const createUzeContextHook =
     return context as any;
   };
 
-export const runWithContext = async <TEnv, TRequest extends BaseRequest>(
+export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest>(
   options: ContextOptions<TEnv, TRequest>,
-  fn: () => Response | Promise<Response>,
+  fn: () => TResult | Promise<TResult>,
 ) => {
   setErrorLogger((options) => {
     const { error, message, info, errorInfo } = options;

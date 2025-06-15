@@ -17,7 +17,8 @@ export type Middleware = () => void | Promise<void>;
 export type Route = () => Promise<Response> | Response;
 
 export interface Uze<TEnv, TRequest extends BaseRequest = Request> {
-  handle: (options: ContextOptions<TEnv, TRequest>, handler: () => Promise<Response>) => Promise<Response>;
+  fetch: (options: ContextOptions<TEnv, TRequest>, handler: () => Promise<Response>) => Promise<Response>;
+  run: <T>(options: ContextOptions<TEnv, TRequest>, handler: () => Promise<T>) => Promise<T>;
   hooks: {
     uzeContext: ReturnType<typeof createUzeContextHook<TEnv, TRequest>>;
   };

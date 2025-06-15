@@ -7,7 +7,7 @@ export interface RouterOptions {
 }
 
 export type Router = Omit<AutoRouterType, "fetch"> & {
-  handler: () => Promise<Response>;
+  fetch: () => Promise<Response>;
 };
 
 export const createRouter = (options?: RouterOptions): Router => {
@@ -18,7 +18,7 @@ export const createRouter = (options?: RouterOptions): Router => {
       throw error;
     },
   });
-  router.handler = async () => {
+  router.fetch = async () => {
     const { request } = uzeContextInternal();
     return router.fetch(request);
   };
