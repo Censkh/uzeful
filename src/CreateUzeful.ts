@@ -3,8 +3,8 @@ import { runAfterCallbacks } from "./After";
 import { createUzeContextHook, runWithContext } from "./Context";
 import type { BaseRequest, Uze } from "./Types";
 
-export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
-  const uze = {
+export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
+  const uzeful = {
     run: async (options, handler) => {
       return await runWithContext<any, TEnv, TRequest>(options, async () => {
         let result: any | undefined;
@@ -17,7 +17,9 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
           return runAfterCallbacks(errorResponse, resolvedError);
         }
         if (!result) {
-          throw new Error("No response");
+          result = new Response(null, {
+            status: 200,
+          });
         }
         return runAfterCallbacks(result, undefined);
       });
@@ -44,5 +46,5 @@ export const createUze = <TEnv, TRequest extends BaseRequest = Request>(): Uze<T
     },
   } satisfies Uze<TEnv, TRequest>;
 
-  return uze;
+  return uzeful;
 };

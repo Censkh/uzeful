@@ -1,4 +1,4 @@
-import {AutoRouter, AutoRouterType, IRequest, type RouterType} from "itty-router";
+import { AutoRouter, type AutoRouterType, type IRequest } from "itty-router";
 import { uzeContextInternal } from "../Context";
 import type { Route } from "../Types";
 
