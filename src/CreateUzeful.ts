@@ -18,7 +18,6 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uz
         }
         return runAfterCallbacks(result, undefined);
       });
-      console.log("1.");
       return result;
     },
     fetch: async (options, handler) => {
