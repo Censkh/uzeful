@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { randomUUID } from "node:crypto";
 import { setErrorLogger } from "sendable-error";
 import { logger } from "./logger/Logger";
 import type { BaseRequest } from "./Types";
@@ -38,6 +37,10 @@ export const createUzeContextHook =
     return context as any;
   };
 
+const quickId = () => {
+  return Math.random().toString(36).substring(2, 15);
+};
+
 export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest>(
   options: ContextOptions<TEnv, TRequest>,
   fn: () => TResult | Promise<TResult>,
@@ -61,7 +64,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     waitUntil: (promiseOrFunction, label) => {
       const promise = typeof promiseOrFunction === "function" ? promiseOrFunction() : promiseOrFunction;
-      const id = label ?? randomUUID();
+      const id = label ? `${label} (${quickId()})` : quickId();
       logger().debug("waitUntil", "Promise started", { id });
       promise.finally(() => {
         logger().debug("waitUntil", "Promise finished", { id });
