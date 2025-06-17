@@ -56,6 +56,7 @@ export const runAfterCallbacks = async (response: Response, error: Error | undef
       }
     }
   }
+  console.log("4.");
 
   return postProcessResponse(response);
 };

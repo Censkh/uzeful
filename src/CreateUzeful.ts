@@ -10,17 +10,15 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uz
         let result: any | undefined;
 
         try {
+          console.log("1.");
           result = (await handler()) as any;
+          console.log("2.");
         } catch (error: any) {
           const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
           const resolvedError = error instanceof Response ? (error as any).cause : error;
           return runAfterCallbacks(errorResponse, resolvedError);
         }
-        if (!result) {
-          result = new Response(null, {
-            status: 200,
-          });
-        }
+        console.log("3.");
         return runAfterCallbacks(result, undefined);
       });
     },
