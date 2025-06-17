@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { randomUUID } from "node:crypto";
 import { setErrorLogger } from "sendable-error";
 import { logger } from "./logger/Logger";
 import type { BaseRequest } from "./Types";
@@ -60,10 +61,10 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     waitUntil: (promiseOrFunction, label) => {
       const promise = typeof promiseOrFunction === "function" ? promiseOrFunction() : promiseOrFunction;
-      const id = label ?? require("crypto").randomUUID();
-      console.log(`[waitUntil] ${id} - Starting promise:`, promise);
+      const id = label ?? randomUUID();
+      logger().debug("waitUntil", "Promise started", { id });
       promise.finally(() => {
-        console.log(`[waitUntil] ${id} - Promise completed`);
+        logger().debug("waitUntil", "Promise finished", { id });
       });
       waitUntil(promise);
     },
