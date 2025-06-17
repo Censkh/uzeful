@@ -60,7 +60,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     waitUntil: (promiseOrFunction, label) => {
       const promise = typeof promiseOrFunction === "function" ? promiseOrFunction() : promiseOrFunction;
-      const id = label ?? require("crypto").randomUuid();
+      const id = label ?? require("crypto").randomUUID();
       console.log(`[waitUntil] ${id} - Starting promise:`, promise);
       promise.finally(() => {
         console.log(`[waitUntil] ${id} - Promise completed`);
