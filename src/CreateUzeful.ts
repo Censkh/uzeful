@@ -6,21 +6,20 @@ import type { BaseRequest, Uze } from "./Types";
 export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
   const uzeful = {
     run: async (options, handler) => {
-      return await runWithContext<any, TEnv, TRequest>(options, async () => {
+      const result = await runWithContext<any, TEnv, TRequest>(options, async () => {
         let result: any | undefined;
 
         try {
-          console.log("1.");
           result = (await handler()) as any;
-          console.log("2.");
         } catch (error: any) {
           const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
           const resolvedError = error instanceof Response ? (error as any).cause : error;
           return runAfterCallbacks(errorResponse, resolvedError);
         }
-        console.log("3.");
         return runAfterCallbacks(result, undefined);
       });
+      console.log("1.");
+      return result;
     },
     fetch: async (options, handler) => {
       return await runWithContext<Response, TEnv, TRequest>(options, async () => {
