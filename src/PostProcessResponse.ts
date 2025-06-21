@@ -1,10 +1,10 @@
 import { createStateKey, uzeState } from "./State";
 
-type ResponseModifier = (response: Response) => void;
+type ResponseModifier = (response: Response) => void | Promise<void>;
 
 const RESPONSE_MODIFIERS = createStateKey<ResponseModifier[]>("responseModifiers", () => []);
 
-export const postProcessResponse = (response: Response) => {
+export const postProcessResponse = async (response: Response) => {
   const [getModifiers] = uzeState(RESPONSE_MODIFIERS);
   const modifiers = getModifiers();
   if (!modifiers || modifiers.length === 0) {
@@ -24,7 +24,7 @@ export const postProcessResponse = (response: Response) => {
   const modifiedResponse = response.clone() as Response;
 
   for (const modifier of modifiers) {
-    modifier(modifiedResponse);
+    await modifier(modifiedResponse);
   }
 
   return modifiedResponse;

@@ -52,9 +52,9 @@ export const runAfterCallbacks = async (response: Response, error: Error | undef
         }
       } catch (error: any) {
         logger().error("afterCallback", "Error in afterCallback", {}, error);
-        return postProcessResponse(SendableError.of(error).toResponse());
+        return await postProcessResponse(SendableError.of(error).toResponse());
       }
     }
   }
-  return postProcessResponse(response);
+  return await postProcessResponse(response);
 };
