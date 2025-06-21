@@ -6,10 +6,28 @@ import { logger } from "./Logger";
 export * from "./Logger";
 
 export type RequestInfoGetter = (request: BaseRequest) => Record<string, string | number | undefined | null>;
-const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => ({
-  method: request.method.toUpperCase(),
-  url: request.url,
-});
+
+const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
+  // @ts-ignore
+  const lowercaseHeaders = request.headers.entries().reduce(
+    (acc: any, [key, value]: any) => {
+      acc[key.toLowerCase()] = value;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
+  return {
+    method: request.method.toUpperCase(),
+    url: request.url,
+    headers: {
+      ...lowercaseHeaders,
+      authorization: undefined,
+      cookie: undefined,
+      "api-key": undefined,
+      "x-api-key": undefined,
+    },
+  };
+};
 
 export interface TraceMiddlewareOptions {
   requestInfoGetter?: RequestInfoGetter;
