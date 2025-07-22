@@ -136,7 +136,7 @@ const writeMessage = (level: Severity, source: string, message: string) => {
   const prefix = colorFromLevel(level)(level.toString().substring(0, 1));
 
   const newMessage = message.split(/\n/g).map((text, index) => {
-    const start = `${sink.disableTime ? "" : `[${chalk.gray(formattedNow())}] `}${sink.disableLevelLabel ? "" : `${prefix} `}${source} - `;
+    const start = `${sink.disableTime ? "" : `[${plain(formattedNow())}] `}${sink.disableLevelLabel ? "" : `${prefix} `}${source} - `;
     return `${index === 0 ? start : " ".repeat(stripAnsi(start).length)}${text}`;
   });
   out(newMessage.join("\n"));
