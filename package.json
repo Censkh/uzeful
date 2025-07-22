@@ -1,7 +1,6 @@
 {
   "name": "uzeful",
   "version": "0.0.2",
-  "main": "src/index.ts",
   "description": "Hooks for the backend",
   "sideEffects": false,
   "scripts": {
@@ -19,6 +18,7 @@
   "exports": {
     ".": {
       "workerd": "./src/index.ts",
+      "browser": "./src/index.browser.ts",
       "default": "./src/index.ts"
     },
     "./logger": {
