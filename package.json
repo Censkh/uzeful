@@ -55,16 +55,16 @@
   "author": "James Waterhouse <09jwater@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "chalk": "4.1.2",
-    "itty-router": "^5.0.18",
+    "chalk": "5.5.0",
+    "itty-router": "^5.0.21",
     "sendable-error": "^0.8.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0-beta.5",
-    "@types/node": "^22.15.29",
+    "@types/node": "^24.2.0",
     "commander": "^14.0.0",
     "ts-morph": "^26.0.0",
-    "typescript": "^5.8.3",
-    "zod": "^3.25.67"
+    "typescript": "^5.9.2",
+    "zod": "^4.0.15"
   }
 }
