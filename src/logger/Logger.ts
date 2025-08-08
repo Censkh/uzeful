@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+// @ts-ignore
 import chalk from "chalk";
 import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
