@@ -85,3 +85,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
 };
 
 export const uzeContextInternal = createUzeContextHook();
+
+export const uzeContext = <TEnv = Record<string, any>, TRequest extends BaseRequest = Request>() => {
+  return uzeContextInternal() as any as Context<TEnv, TRequest>;
+};
