@@ -60,8 +60,8 @@
     "sendable-error": "^0.8.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.0-beta.5",
-    "@types/node": "^24.2.1",
+    "@biomejs/biome": "^2.2.0",
+    "@types/node": "^24.3.0",
     "commander": "^14.0.0",
     "ts-morph": "^26.0.0",
     "typescript": "^5.9.2",
