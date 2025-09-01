@@ -77,7 +77,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
       waitUntil(promise);
     },
     startMs: Date.now(),
-    // @ts-ignore
+    // @ts-expect-error
     request: request,
     state: {},
   } satisfies Context;

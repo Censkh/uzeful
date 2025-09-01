@@ -8,7 +8,7 @@ export * from "./Logger";
 export type RequestInfoGetter = (request: BaseRequest) => Record<string, string | number | undefined | null>;
 
 const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
-  // @ts-ignore
+  // @ts-expect-error
   const lowercaseHeaders = request.headers.entries().reduce(
     (acc: any, [key, value]: any) => {
       acc[key.toLowerCase()] = value;
