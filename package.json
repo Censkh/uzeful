@@ -64,7 +64,7 @@
     "sendable-error": "^0.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.0",
+    "@biomejs/biome": "^2.2.2",
     "@types/node": "^24.3.0",
     "commander": "^14.0.0",
     "ts-morph": "^26.0.0",
