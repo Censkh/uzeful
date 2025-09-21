@@ -1,3 +1,4 @@
+import qs, { defaultDecoder } from "qs";
 import SendableError from "sendable-error";
 import type * as zod from "zod/v4";
 import { uzeContextInternal } from "../Context";
@@ -30,20 +31,23 @@ export const uzeValidatedBody = async <T extends zod.ZodType>(schema: T): Promis
 
 export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promise<zod.output<T>> => {
   const { request } = uzeContextInternal();
-  const searchParams = new URL(request.url).searchParams;
+  const search = new URL(request.url).search.split("?")[1] || "";
 
-  const parsedParams = Array.from(searchParams.entries()).reduce(
-    (acc, [key, value]) => {
-      let parsedValue = value;
-      try {
-        parsedValue = JSON.parse(value);
-      } catch {}
-
-      acc[key] = parsedValue;
-      return acc;
+  const parsedParams = qs.parse(search, {
+    decoder: (value, defaultDecoder, charset, key) => {
+      if (value === "true") {
+        return true;
+      }
+      if (value === "false") {
+        return false;
+      }
+      if (Number.isFinite(Number(value))) {
+        return Number(value);
+      }
+      return defaultDecoder(value, charset, key);
     },
-    {} as Record<string, any>,
-  );
+  });
+  console.log(parsedParams);
 
   return uzeValidated(parsedParams, schema);
 };
