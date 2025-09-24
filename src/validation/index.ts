@@ -47,7 +47,6 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
       return defaultDecoder(value, charset, key);
     },
   });
-  console.log(parsedParams);
 
   return uzeValidated(parsedParams, schema);
 };
