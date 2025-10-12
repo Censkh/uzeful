@@ -55,3 +55,74 @@ export const uzeValidatedParams = async <T extends zod.ZodType>(schema: T): Prom
   const { request } = uzeContextInternal();
   return uzeValidated(request.params, schema);
 };
+
+export const uzeValidatedHeaders = async <T extends zod.ZodType>(schema: T): Promise<zod.output<T>> => {
+  const { request } = uzeContextInternal();
+  const headersObj: Record<string, string> = {};
+
+  request.headers.forEach((value, key) => {
+    headersObj[key] = value;
+  });
+
+  return uzeValidated(headersObj, schema);
+};
+
+export interface ValidatedRequestSchema<
+  TParams extends zod.ZodType = zod.ZodType,
+  TQuery extends zod.ZodType = zod.ZodType,
+  TBody extends zod.ZodType = zod.ZodType,
+  THeaders extends zod.ZodType = zod.ZodType,
+> {
+  params?: TParams;
+  query?: TQuery;
+  body?: TBody;
+  headers?: THeaders;
+}
+
+export interface ValidatedRequest<TParams = any, TQuery = any, TBody = any, THeaders = any> {
+  params: TParams;
+  query: TQuery;
+  body: TBody;
+  headers: THeaders;
+}
+
+export const uzeValidatedRequest = async <
+  TParams extends zod.ZodType = zod.ZodNever,
+  TQuery extends zod.ZodType = zod.ZodNever,
+  TBody extends zod.ZodType = zod.ZodNever,
+  THeaders extends zod.ZodType = zod.ZodNever,
+>(
+  schema: ValidatedRequestSchema<TParams, TQuery, TBody, THeaders>,
+): Promise<
+  ValidatedRequest<
+    TParams extends zod.ZodNever ? undefined : zod.output<TParams>,
+    TQuery extends zod.ZodNever ? undefined : zod.output<TQuery>,
+    TBody extends zod.ZodNever ? undefined : zod.output<TBody>,
+    THeaders extends zod.ZodNever ? undefined : zod.output<THeaders>
+  >
+> => {
+  const results: any = {
+    params: undefined,
+    query: undefined,
+    body: undefined,
+    headers: undefined,
+  };
+
+  if (schema.params) {
+    results.params = await uzeValidatedParams(schema.params);
+  }
+
+  if (schema.query) {
+    results.query = await uzeValidatedQuery(schema.query);
+  }
+
+  if (schema.body) {
+    results.body = await uzeValidatedBody(schema.body);
+  }
+
+  if (schema.headers) {
+    results.headers = await uzeValidatedHeaders(schema.headers);
+  }
+
+  return results;
+};
