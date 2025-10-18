@@ -1,4 +1,4 @@
-import qs, { defaultDecoder } from "qs";
+import qs from "qs";
 import SendableError from "sendable-error";
 import type * as zod from "zod/v4";
 import { uzeContextInternal } from "../Context";
@@ -34,6 +34,7 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
   const search = new URL(request.url).search.split("?")[1] || "";
 
   const parsedParams = qs.parse(search, {
+    comma: true,
     decoder: (value, defaultDecoder, charset, key) => {
       if (value === "true") {
         return true;
