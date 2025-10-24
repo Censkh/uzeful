@@ -61,11 +61,11 @@
   "dependencies": {
     "chalk": "4.1.2",
     "itty-router": "^5.0.22",
-    "sendable-error": "^0.9.1"
+    "sendable-error": "^0.10.0-alpha.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.6",
-    "@types/node": "^24.8.1",
+    "@biomejs/biome": "^2.3.0",
+    "@types/node": "^24.9.1",
     "commander": "^14.0.0",
     "ts-morph": "^27.0.2",
     "typescript": "^5.9.3",

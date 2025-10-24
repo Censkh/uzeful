@@ -1,6 +1,6 @@
 import type { Router } from "./router";
 
-export { ErrorCode, SendableError } from "sendable-error";
+export { type BaseErrorCode, ErrorCode, SendableError } from "sendable-error";
 export { Priority, uzeAfter } from "./After";
 export * from "./BuiltinHooks";
 export {
