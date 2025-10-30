@@ -65,8 +65,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.1",
-    "@types/node": "^24.9.1",
-    "commander": "^14.0.0",
+    "@types/node": "^24.9.2",
+    "commander": "^14.0.2",
     "ts-morph": "^27.0.2",
     "typescript": "^5.9.3",
     "zod": "4.1.3"
