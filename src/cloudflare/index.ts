@@ -1,5 +1,6 @@
-import { createStateKey, uzeState } from ".";
-import type { BaseRequest, Uze } from "./Types";
+import { createStateKey, uzeState } from "..";
+import { createUzeful } from "../CreateUzeful";
+import type { BaseRequest, Uze } from "../Types";
 
 export const cloudflareFetch = <TEnv, TRequest extends BaseRequest = Request>(
   uze: Uze<TEnv, TRequest>,
@@ -71,4 +72,34 @@ export const cloudflareQueue = <TEnv, TRequest extends BaseRequest = Request>(
       },
     );
   };
+};
+
+/**
+ * Helper function for running tests with Cloudflare test environment
+ * Allows using uze hooks in test context
+ */
+export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Promise<TReturn>): Promise<TReturn> => {
+  const uze = createUzeful<TEnv, Request>();
+  const waitUntilPromises: Promise<any>[] = [];
+
+  const context = {
+    waitUntil: (promise: Promise<any>) => {
+      waitUntilPromises.push(promise);
+    },
+  };
+
+  const result = await uze.run(
+    {
+      request: undefined as any,
+      env,
+      waitUntil: context.waitUntil,
+      rawContext: context,
+    },
+    handler,
+  );
+
+  // Wait for all waitUntil promises to complete
+  await Promise.all(waitUntilPromises);
+
+  return result;
 };

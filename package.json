@@ -23,8 +23,8 @@
       "default": "./src/index.ts"
     },
     "./cloudflare": {
-      "workerd": "./src/cloudflare.ts",
-      "default": "./src/cloudflare.ts"
+      "workerd": "./src/cloudflare/index.ts",
+      "default": "./src/cloudflare/index.ts"
     },
     "./logger": {
       "workerd": "./src/logger/index.ts",
@@ -64,8 +64,8 @@
     "sendable-error": "^0.10.0-alpha.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.1",
-    "@types/node": "^24.9.2",
+    "@biomejs/biome": "^2.3.3",
+    "@types/node": "^24.10.0",
     "commander": "^14.0.2",
     "ts-morph": "^27.0.2",
     "typescript": "^5.9.3",

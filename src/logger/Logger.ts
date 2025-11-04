@@ -141,7 +141,7 @@ export const enableTestLogging = () => {
 };
 
 const writeMessage = (level: Severity, source: string, message: string) => {
-  if (process.env.NODE_ENV === "test" && /test/i.test(process.env.VERBOSE || "")) {
+  if (process.env.NODE_ENV === "test" && !/test/i.test(process.env.VERBOSE || "")) {
     return;
   }
   const sink = { ...DEFAULT_SINK, ...SINK_STORAGE.getStore() };
