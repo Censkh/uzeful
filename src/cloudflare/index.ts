@@ -103,3 +103,4 @@ export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Pr
 
   return result;
 };
+
