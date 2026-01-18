@@ -3,9 +3,8 @@ import { runAfterCallbacks } from "./After";
 import { type Context, createUzeContextHook, runWithContext } from "./Context";
 import type { BaseRequest, Uze } from "./Types";
 
-export type ContextType<TUze extends Uze<any, any>> = TUze extends Uze<infer TEnv, infer TRequest>
-  ? Context<TEnv, TRequest>
-  : never;
+export type ContextType<TUze extends Uze<any, any>> =
+  TUze extends Uze<infer TEnv, infer TRequest> ? Context<TEnv, TRequest> : never;
 
 export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
   const uzeful = {
