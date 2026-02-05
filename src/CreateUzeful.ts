@@ -1,15 +1,44 @@
 import SendableError from "sendable-error";
 import { runAfterCallbacks } from "./After";
 import { type Context, createUzeContextHook, runWithContext } from "./Context";
+import type { KeyStore } from "./cache/KeyStore";
+import { createStateKey, uzeState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
 
 export type ContextType<TUze extends Uze<any, any>> =
   TUze extends Uze<infer TEnv, infer TRequest> ? Context<TEnv, TRequest> : never;
 
-export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uze<TEnv, TRequest> => {
+export interface CacheOptions<TEnv = any, TRequest extends BaseRequest = any> {
+  createKeyStore: (context: Context<TEnv, TRequest>) => Promise<KeyStore>;
+  getVersion: (context: Context<TEnv, TRequest>) => string;
+  getKeyPrefix: (context: Context<TEnv, TRequest>) => string;
+}
+
+export interface UzefulOptions<TEnv = any, TRequest extends BaseRequest = any> {
+  cache?: CacheOptions<TEnv, TRequest>;
+}
+
+// Internal state key for options
+const UZEFUL_OPTIONS_KEY = createStateKey<UzefulOptions>("uzefulOptions");
+
+// Internal hook to access options
+export const uzeOptions = () => {
+  const [getOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+  return getOptions() || {};
+};
+
+export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
+  options?: UzefulOptions<TEnv, TRequest>,
+): Uze<TEnv, TRequest> => {
   const uzeful = {
-    run: async (options, handler) => {
-      const result = await runWithContext<any, TEnv, TRequest>(options, async () => {
+    run: async (runOptions, handler) => {
+      const result = await runWithContext<any, TEnv, TRequest>(runOptions, async () => {
+        // Initialize options state available for this run
+        if (options) {
+          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          setOptions(options);
+        }
+
         let result: any | undefined;
 
         try {
@@ -23,8 +52,14 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(): Uz
       });
       return result;
     },
-    fetch: async (options, handler) => {
-      return await runWithContext<Response, TEnv, TRequest>(options, async () => {
+    fetch: async (runOptions, handler) => {
+      return await runWithContext<Response, TEnv, TRequest>(runOptions, async () => {
+        // Initialize options state available for this run
+        if (options) {
+          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          setOptions(options);
+        }
+
         let response: Response | undefined;
 
         try {
