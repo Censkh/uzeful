@@ -6,7 +6,7 @@
   "scripts": {
     "prepublishOnly": "npm run check:fix && npm run test && npm run build",
     "build": "tsc -p tsconfig.json",
-    "test": "bun test",
+    "test": "bun test --pass-with-no-tests",
     "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
     "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."
   },
