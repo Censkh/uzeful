@@ -51,6 +51,10 @@
     "./cache/upstash": {
       "workerd": "./src/cache/UpstashKeyStore.ts",
       "default": "./src/cache/UpstashKeyStore.ts"
+    },
+    "./cache/in-memory": {
+      "workerd": "./src/cache/InMemoryKeyStore.ts",
+      "default": "./src/cache/InMemoryKeyStore.ts"
     }
   },
   "keywords": [
