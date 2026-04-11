@@ -51,6 +51,10 @@
     "./cache/upstash": {
       "workerd": "./src/cache/UpstashKeyStore.ts",
       "default": "./src/cache/UpstashKeyStore.ts"
+    },
+    "./cache/in-memory": {
+      "workerd": "./src/cache/InMemoryKeyStore.ts",
+      "default": "./src/cache/InMemoryKeyStore.ts"
     }
   },
   "keywords": [
@@ -74,7 +78,7 @@
     "chalk": "4.1.2",
     "cookie": "^1.1.1",
     "itty-router": "^5.0.23",
-    "qs": "^6.15.0",
+    "qs": "^6.15.1",
     "sendable-error": "^0.10.0"
   },
   "peerDependencies": {
@@ -82,12 +86,12 @@
   },
   "devDependencies": {
     "@upstash/redis": "^1.37.0",
-    "@biomejs/biome": "^2.4.10",
-    "@types/node": "^25.5.2",
+    "@biomejs/biome": "^2.4.11",
+    "@types/node": "^25.6.0",
     "@types/qs": "^6.15.0",
     "commander": "^14.0.3",
     "ts-morph": "^27.0.2",
     "typescript": "^6.0.2",
-    "zod": "4.1.3"
+    "zod": "4.3.6"
   }
 }
