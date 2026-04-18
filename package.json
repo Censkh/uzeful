@@ -86,12 +86,12 @@
   },
   "devDependencies": {
     "@upstash/redis": "^1.37.0",
-    "@biomejs/biome": "^2.4.11",
+    "@biomejs/biome": "^2.4.12",
     "@types/node": "^25.6.0",
     "@types/qs": "^6.15.0",
     "commander": "^14.0.3",
-    "ts-morph": "^27.0.2",
-    "typescript": "^6.0.2",
+    "ts-morph": "^28.0.0",
+    "typescript": "^6.0.3",
     "zod": "4.3.6"
   }
 }
