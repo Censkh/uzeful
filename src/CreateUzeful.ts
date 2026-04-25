@@ -1,6 +1,6 @@
 import SendableError from "sendable-error";
 import { runAfterCallbacks } from "./After";
-import { type Context, createUzeContextHook, runWithContext } from "./Context";
+import { type Context, createUzeContextHook, getCurrentUzeContext, runWithContext } from "./Context";
 import type { KeyStore } from "./cache/KeyStore";
 import { createStateKey, uzeState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
@@ -30,9 +30,21 @@ export const uzeOptions = () => {
 export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
   options?: UzefulOptions<TEnv, TRequest>,
 ): Uze<TEnv, TRequest> => {
+  const withInheritedTestContext = (runOptions: any) => {
+    const currentContext = getCurrentUzeContext();
+    if (!currentContext?.rawContext?.__uzeTestContext) {
+      return runOptions;
+    }
+
+    return {
+      ...runOptions,
+      state: runOptions.state ?? currentContext.state,
+    };
+  };
+
   const uzeful = {
     run: async (runOptions, handler) => {
-      const result = await runWithContext<any, TEnv, TRequest>(runOptions, async () => {
+      const result = await runWithContext<any, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
           const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
@@ -41,19 +53,13 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
 
         let result: any | undefined;
 
-        try {
           result = (await handler()) as any;
-        } catch (error: any) {
-          const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
-          const resolvedError = error instanceof Response ? (error as any).cause : error;
-          return runAfterCallbacks(errorResponse, resolvedError);
-        }
         return runAfterCallbacks(result, undefined);
       });
       return result;
     },
     fetch: async (runOptions, handler) => {
-      return await runWithContext<Response, TEnv, TRequest>(runOptions, async () => {
+      return await runWithContext<Response, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
           const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
@@ -65,7 +71,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
         try {
           response = await handler();
         } catch (error: any) {
-          console.error("Error in run", error);
+          console.error("uzeful.fetch error", error);
           const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
           const resolvedError = error instanceof Response ? (error as any).cause : error;
           return runAfterCallbacks(errorResponse, resolvedError);

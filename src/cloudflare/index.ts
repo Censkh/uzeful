@@ -83,6 +83,7 @@ export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Pr
   const waitUntilPromises: Promise<any>[] = [];
 
   const context = {
+    __uzeTestContext: true,
     waitUntil: (promise: Promise<any>) => {
       waitUntilPromises.push(promise);
     },

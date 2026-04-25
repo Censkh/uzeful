@@ -23,9 +23,12 @@ export type ContextOptions<TEnv = unknown, TRequest extends BaseRequest = Reques
   waitUntil: (promise: Promise<any>) => void;
   rawContext?: any;
   request: TRequest;
+  state?: unknown;
 };
 
 const CONTEXT_STORAGE = new AsyncLocalStorage<Context>();
+
+export const getCurrentUzeContext = () => CONTEXT_STORAGE.getStore();
 
 export const createUzeContextHook =
   <TEnv = unknown, TRequest extends BaseRequest = Request>() =>
@@ -58,7 +61,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     );
   });
 
-  const { request, waitUntil, ...otherOptions } = options;
+  const { request, waitUntil, state, ...otherOptions } = options;
 
   const context = {
     ...otherOptions,
@@ -79,7 +82,7 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     startMs: Date.now(),
     // @ts-expect-error
     request: request,
-    state: {},
+    state: state ?? {},
   } satisfies Context;
   return CONTEXT_STORAGE.run(context as any, fn);
 };
