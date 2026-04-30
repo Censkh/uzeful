@@ -1,6 +1,6 @@
-import {AutoRouter, type AutoRouterType, type IRequest} from "itty-router";
-import {uzeContextInternal} from "../Context";
-import type {Route} from "../Types";
+import { AutoRouter, type AutoRouterType, type IRequest } from "itty-router";
+import { uzeContextInternal } from "../Context";
+import type { Route } from "../Types";
 
 export interface RouterOptions {
   base?: string;
@@ -20,7 +20,7 @@ export const createRouter = (options?: RouterOptions): Router => {
   });
   const originalFetch = router.fetch;
   router.fetch = async () => {
-    const {request} = uzeContextInternal();
+    const { request } = uzeContextInternal();
     return originalFetch(request);
   };
 

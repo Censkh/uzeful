@@ -53,7 +53,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
 
         let result: any | undefined;
 
-          result = (await handler()) as any;
+        result = (await handler()) as any;
         return runAfterCallbacks(result, undefined);
       });
       return result;
