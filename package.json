@@ -82,13 +82,13 @@
     "sendable-error": "^0.10.0"
   },
   "peerDependencies": {
-    "@upstash/redis": "^1.37.0"
+    "@upstash/redis": "^1.38.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.13",
-    "@types/node": "^25.6.0",
-    "@types/qs": "^6.15.0",
-    "@upstash/redis": "^1.37.0",
+    "@biomejs/biome": "^2.4.15",
+    "@types/node": "^25.6.2",
+    "@types/qs": "^6.15.1",
+    "@upstash/redis": "^1.38.0",
     "commander": "^14.0.3",
     "ts-morph": "^28.0.0",
     "typescript": "^6.0.3",
