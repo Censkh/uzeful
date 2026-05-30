@@ -105,7 +105,12 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
           durationMs: Date.now() - startNow,
         });
       }
-      return requestCacheResult.then((item) => item.data);
+      return requestCacheResult.then((item) => {
+        if (!item || item.version !== CACHE_ITEM_VERSION) {
+          return undefined;
+        }
+        return item.data;
+      });
     }
 
     // Fall back to key store

@@ -31,8 +31,7 @@ export const lazyRoute = (loader: () => Promise<{ default: Route }>): Route => {
   let routePromise: Promise<{ default: Route }>;
   return async () => {
     const route = await (routePromise || (routePromise = loader()));
-    const response: Response = await route.default();
 
-    return response;
+    return await route.default();
   };
 };

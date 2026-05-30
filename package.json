@@ -82,7 +82,7 @@
     "kleur": "^4.1.5"
   },
   "peerDependencies": {
-    "@upstash/redis": "^1.37.0"
+    "@upstash/redis": "^1.38.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
