@@ -5,7 +5,7 @@ describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
     const messages: string[] = [];
     const previousVerbose = process.env.VERBOSE;
-    process.env.VERBOSE = "test";
+    process.env.VERBOSE = "true";
 
     withSink(
       { out: { info: (message) => messages.push(message) } as Console, disableTime: true, disableLevelLabel: true },
