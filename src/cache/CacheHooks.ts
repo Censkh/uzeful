@@ -83,7 +83,6 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
 
   const debugValue = (value: unknown) => {
     if (!debugEnabled) return undefined;
-    if (typeof value === "string") return value;
     try {
       const serialized = JSON.stringify(value);
       if (!serialized) return String(value);
@@ -218,13 +217,10 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const howFarInFuture = effectiveExpiresAt ? effectiveExpiresAt - now : undefined;
     if (!howFarInFuture || howFarInFuture > 1000 * 10) {
       await keyStore.set(cacheKey, cacheItem, effectiveExpiresAt);
-      const verifiedValue = debugEnabled ? await keyStore.get<CacheItem<T>>(cacheKey) : undefined;
 
       debugLog("Write key store", {
         key: cacheKey,
         value: debugValue(value),
-        verifiedValue: debugValue(verifiedValue?.data),
-        verifiedValid: verifiedValue ? verifiedValue.version === CACHE_ITEM_VERSION : undefined,
         expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
         durationMs: Date.now() - now,
       });
@@ -353,14 +349,9 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const keyStore = await getKeyStore();
     if (keyStore) {
       await keyStore.setMany(entries);
-      const verifiedValues = debugEnabled
-        ? await keyStore.getMany<CacheItem<T>>(entries.map((entry) => entry.key))
-        : undefined;
       debugLog("Write many key store", {
         count: entries.length,
         values: debugValue(items.map((item) => item.value)),
-        verifiedValues: debugValue(verifiedValues?.map((value) => value?.data)),
-        verifiedValid: verifiedValues?.map((value) => (value ? value.version === CACHE_ITEM_VERSION : false)),
         durationMs: Date.now() - now,
       });
     } else {
