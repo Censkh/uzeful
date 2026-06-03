@@ -71,7 +71,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
         try {
           response = await handler();
         } catch (error: any) {
-          console.error("uzeful.fetch error", error);
+          //console.error("uzeful.fetch error", error);
           const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
           const resolvedError = error instanceof Response ? (error as any).cause : error;
           return runAfterCallbacks(errorResponse, resolvedError);

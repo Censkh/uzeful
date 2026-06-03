@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import chalk from "chalk";
+import kleur from "kleur";
 import { ErrorCode, isSendableError, setErrorLogger } from "sendable-error";
 
 const SINK_STORAGE = new AsyncLocalStorage<Sink>();
@@ -69,13 +69,13 @@ export const colorFromLevel = (level: Severity): ((text: string) => string) => {
 
   switch (level) {
     case "info":
-      return chalk.blueBright;
+      return kleur.blue;
     case "error":
-      return chalk.redBright;
+      return kleur.red;
     case "warn":
-      return chalk.yellowBright;
+      return kleur.yellow;
     default:
-      return chalk.gray;
+      return kleur.gray;
   }
 };
 
@@ -153,7 +153,7 @@ const writeMessage = (level: Severity, source: string, message: string) => {
   const prefix = colorFromLevel(level)(level.toString().substring(0, 1));
 
   const newMessage = message.split(/\n/g).map((text, index) => {
-    const start = `${sink.disableTime ? "" : `[${chalk.gray(formattedNow())}] `}${sink.disableLevelLabel ? "" : `${prefix} `}${source} - `;
+    const start = `${sink.disableTime ? "" : `[${kleur.gray(formattedNow())}] `}${sink.disableLevelLabel ? "" : `${prefix} `}${source} - `;
     return `${index === 0 ? start : " ".repeat(stripAnsi(start).length)}${text}`;
   });
   out(newMessage.join("\n"));
