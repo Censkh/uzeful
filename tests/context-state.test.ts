@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createStateKey, createUzeful, uzeContext, uzeRequestId, uzeSharedState, uzeState } from "../src";
+import { createStateKey, createUzeful, uzeContext, uzeRequestId, uzeRequestState, uzeSharedState } from "../src";
 import { run } from "./helpers";
 
 describe("context and state", () => {
@@ -8,7 +8,7 @@ describe("context and state", () => {
 
     const first = await run(() => {
       const context = uzeContext();
-      const [getCounter, setCounter] = uzeState(key);
+      const [getCounter, setCounter] = uzeRequestState(key);
 
       expect(context.request.url).toBe("https://example.com/");
       setCounter((current) => current + 1);
@@ -16,7 +16,7 @@ describe("context and state", () => {
     });
 
     const second = await run(() => {
-      const [getCounter] = uzeState(key);
+      const [getCounter] = uzeRequestState(key);
       return { counter: getCounter(), requestId: uzeRequestId() };
     });
 

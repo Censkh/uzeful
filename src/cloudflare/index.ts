@@ -1,4 +1,4 @@
-import { createStateKey, uzeState } from "..";
+import { createStateKey, uzeRequestState } from "..";
 import { createUzeful } from "../CreateUzeful";
 import type { BaseRequest, Uze } from "../Types";
 
@@ -43,7 +43,7 @@ export const cloudflareRun = <TEnv, TRequest extends BaseRequest = Request>(
 const QUEUE_STATE_KEY = createStateKey<Record<string, any>>("cloudflare-queue-state");
 
 export const uzeCloudflareQueue = () => {
-  const [getQueueState, setQueueState] = uzeState(QUEUE_STATE_KEY);
+  const [getQueueState, setQueueState] = uzeRequestState(QUEUE_STATE_KEY);
   return getQueueState();
 };
 
@@ -64,7 +64,7 @@ export const cloudflareQueue = <TEnv, TRequest extends BaseRequest = Request>(
         rawContext: context,
       },
       async () => {
-        const [getQueueState, setQueueState] = uzeState(QUEUE_STATE_KEY);
+        const [getQueueState, setQueueState] = uzeRequestState(QUEUE_STATE_KEY);
         setQueueState({
           messages: batch.messages,
         });

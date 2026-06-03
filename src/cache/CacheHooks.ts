@@ -1,7 +1,7 @@
 import { uzeContext } from "../Context";
 import { uzeOptions } from "../CreateUzeful";
 import { logger } from "../logger";
-import { createStateKey, uzeState } from "../State";
+import { createStateKey, uzeRequestState } from "../State";
 import type { CacheSetItem, KeyStore } from "./KeyStore";
 
 export interface SimpleCacheNamespaceOptions {
@@ -63,7 +63,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   // Default to local if specific config is missing, though ensureKeyStore is critical for persistence
   const keyPrefix = cache?.getKeyPrefix ? cache.getKeyPrefix(context) : "local";
 
-  const [getRequestCache, setRequestCache] = uzeState(REQUEST_CACHE_KEY);
+  const [getRequestCache, setRequestCache] = uzeRequestState(REQUEST_CACHE_KEY);
 
   const generateCacheKey = (key: string | undefined) => {
     const namespaceId = namespace.getId ? namespace.getId() : namespace.id;
@@ -71,7 +71,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   };
 
   const KEY_STORE_STATE_KEY = createStateKey<KeyStore>("keyStoreInstance");
-  const [getKeyStoreInstance, setKeyStoreInstance] = uzeState(KEY_STORE_STATE_KEY);
+  const [getKeyStoreInstance, setKeyStoreInstance] = uzeRequestState(KEY_STORE_STATE_KEY);
 
   const getKeyStore = async (): Promise<KeyStore | undefined> => {
     const existing = getKeyStoreInstance();

@@ -19,7 +19,7 @@ const SHARED_STATE_STORE = new Map<string, any>();
 type StateGetter<T> = () => T;
 type StateSetter<T> = (valueOrUpdater: T | ((current: T) => T)) => T;
 
-export const uzeState = <T>(key: StateKey<T>): [StateGetter<T>, StateSetter<T>] => {
+export const uzeRequestState = <T>(key: StateKey<T>): [StateGetter<T>, StateSetter<T>] => {
   const context = uzeContextInternal();
   const resolvedKey = `${STATE_KEY_PREFIX}${key.id}`;
   const state = context.state as any;

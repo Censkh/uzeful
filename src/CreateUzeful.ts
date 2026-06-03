@@ -2,7 +2,7 @@ import SendableError from "sendable-error";
 import { runAfterCallbacks } from "./After";
 import { type Context, createUzeContextHook, getCurrentUzeContext, runWithContext } from "./Context";
 import type { KeyStore } from "./cache/KeyStore";
-import { createStateKey, uzeState } from "./State";
+import { createStateKey, uzeRequestState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
 
 export type ContextType<TUze extends Uze<any, any>> =
@@ -23,7 +23,7 @@ const UZEFUL_OPTIONS_KEY = createStateKey<UzefulOptions>("uzefulOptions");
 
 // Internal hook to access options
 export const uzeOptions = () => {
-  const [getOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+  const [getOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
   return getOptions() || {};
 };
 
@@ -47,7 +47,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
       const result = await runWithContext<any, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
-          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          const [_, setOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
           setOptions(options);
         }
 
@@ -62,7 +62,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
       return await runWithContext<Response, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
-          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          const [_, setOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
           setOptions(options);
         }
 

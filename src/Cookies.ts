@@ -1,14 +1,14 @@
 import { parse as parseCookies } from "cookie";
 import { uzeContextInternal } from "./Context";
 import { uzeResponseModifier } from "./PostProcessResponse";
-import { createStateKey, uzeState } from "./State";
+import { createStateKey, uzeRequestState } from "./State";
 import type { CookieStore } from "./Types";
 
 const COOKIE_STATE_KEY = createStateKey<CookieStore>("cookies");
 
 export const uzeCookies = (): CookieStore => {
   const { request } = uzeContextInternal();
-  const [getCookieStore, setCookieStore] = uzeState(COOKIE_STATE_KEY);
+  const [getCookieStore, setCookieStore] = uzeRequestState(COOKIE_STATE_KEY);
 
   const existingStore = getCookieStore();
   if (existingStore) {

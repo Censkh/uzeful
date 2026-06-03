@@ -13,7 +13,7 @@ export {
 export { uzeCookies } from "./Cookies";
 export { type ContextType, createUzeful } from "./CreateUzeful";
 export { uzeResponseModifier } from "./PostProcessResponse";
-export { createStateKey, type StateKey, uzeSharedState, uzeState } from "./State";
+export { createStateKey, type StateKey, uzeRequestState, uzeSharedState } from "./State";
 export type { CookieStore, Middleware, Route, Uze, UzeAdapter } from "./Types";
 
 export function openApiEntry(router: Router) {

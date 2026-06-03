@@ -79,8 +79,7 @@
     "itty-router": "^5.0.23",
     "kleur": "^4.1.5",
     "qs": "^6.15.2",
-    "sendable-error": "^0.11.4",
-    "kleur": "^4.1.5"
+    "sendable-error": "^0.11.4"
   },
   "peerDependencies": {
     "@upstash/redis": "^1.38.0"
