@@ -56,6 +56,7 @@ const ENFORCE_MAX_CACHE_LIFETIME = false;
 
 const REQUEST_CACHE_KEY = createStateKey<Record<string, Promise<any>>>("request-cache");
 const KEY_STORE_STATE_KEY = createStateKey<KeyStore>("keyStoreInstance");
+const MAX_DEBUG_VALUE_LENGTH = 1000;
 
 export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   const context = uzeContext();
@@ -78,6 +79,18 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
       keyPrefix,
       ...data,
     });
+  };
+
+  const debugValue = (value: unknown) => {
+    if (!debugEnabled) return undefined;
+    try {
+      const serialized = JSON.stringify(value);
+      if (!serialized) return String(value);
+      if (serialized.length <= MAX_DEBUG_VALUE_LENGTH) return serialized;
+      return `${serialized.slice(0, MAX_DEBUG_VALUE_LENGTH)}…`;
+    } catch {
+      return String(value);
+    }
   };
 
   const [getKeyStoreInstance, setKeyStoreInstance] = uzeRequestState(KEY_STORE_STATE_KEY);
@@ -117,11 +130,12 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const requestCache = getRequestCache();
     const requestCacheResult = requestCache?.[cacheKey] as Promise<CacheItem<T>> | undefined;
     if (requestCacheResult) {
-      debugLog("Read request cache hit", {
-        key: cacheKey,
-        durationMs: Date.now() - startNow,
-      });
       return requestCacheResult.then((item) => {
+        debugLog("Read request cache hit", {
+          key: cacheKey,
+          value: debugValue(item?.data),
+          durationMs: Date.now() - startNow,
+        });
         if (!item || item.version !== CACHE_ITEM_VERSION) {
           return undefined;
         }
@@ -160,6 +174,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     debugLog(`Read key store ${result ? "hit" : "miss"}`, {
       key: cacheKey,
       valid: !!result && result.version === CACHE_ITEM_VERSION,
+      value: debugValue(result?.data),
       durationMs: Date.now() - startNow,
     });
 
@@ -193,6 +208,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     if (!keyStore) {
       debugLog("Write skipped without key store", {
         key: cacheKey,
+        value: debugValue(value),
         durationMs: Date.now() - now,
       });
       return;
@@ -204,12 +220,14 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
 
       debugLog("Write key store", {
         key: cacheKey,
+        value: debugValue(value),
         expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
         durationMs: Date.now() - now,
       });
     } else {
       debugLog("Write skipped due to near expiration", {
         key: cacheKey,
+        value: debugValue(value),
         expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
         durationMs: Date.now() - now,
       });
@@ -270,6 +288,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
           requested: keys.length,
           missing: missingKeys.length,
           hits,
+          values: debugValue(storeResults.map((result) => result?.data)),
           durationMs: Date.now() - startNow,
         });
 
@@ -300,6 +319,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     } else {
       debugLog("Read many request cache hit", {
         requested: keys.length,
+        values: debugValue(results),
         durationMs: Date.now() - startNow,
       });
     }
@@ -331,11 +351,13 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
       await keyStore.setMany(entries);
       debugLog("Write many key store", {
         count: entries.length,
+        values: debugValue(items.map((item) => item.value)),
         durationMs: Date.now() - now,
       });
     } else {
       debugLog("Write many skipped without key store", {
         count: entries.length,
+        values: debugValue(items.map((item) => item.value)),
         durationMs: Date.now() - now,
       });
     }
