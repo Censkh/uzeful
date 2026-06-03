@@ -99,8 +99,10 @@ export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Pr
     handler,
   );
 
-  // Wait for all waitUntil promises to complete
-  await Promise.all(waitUntilPromises);
+  while (waitUntilPromises.length > 0) {
+    const batch = waitUntilPromises.splice(0);
+    await Promise.all(batch);
+  }
 
   return result;
 };
