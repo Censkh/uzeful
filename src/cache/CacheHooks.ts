@@ -50,16 +50,17 @@ interface CacheItem<T> {
 }
 
 const CACHE_ITEM_VERSION = 1;
-const ENABLE_CACHE_DEBUG = false;
 // Maximum cache lifetime of 1 month in milliseconds
 const MAX_CACHE_LIFETIME = 30 * 24 * 60 * 60 * 1000;
 const ENFORCE_MAX_CACHE_LIFETIME = false;
 
 const REQUEST_CACHE_KEY = createStateKey<Record<string, Promise<any>>>("request-cache");
+const KEY_STORE_STATE_KEY = createStateKey<KeyStore>("keyStoreInstance");
 
 export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   const context = uzeContext();
-  const { cache } = uzeOptions();
+  const { cache, debug } = uzeOptions();
+  const debugEnabled = typeof debug === "function" ? debug(context) : !!debug;
   // Default to local if specific config is missing, though ensureKeyStore is critical for persistence
   const keyPrefix = cache?.getKeyPrefix ? cache.getKeyPrefix(context) : "local";
 
@@ -70,16 +71,33 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     return `${keyPrefix}:${namespaceId}${key ? `:${key}` : ""}`;
   };
 
-  const KEY_STORE_STATE_KEY = createStateKey<KeyStore>("keyStoreInstance");
+  const debugLog = (message: string, data: Record<string, unknown>) => {
+    if (!debugEnabled) return;
+    logger().debug("uzeCacheState", message, {
+      namespace: namespace.id,
+      keyPrefix,
+      ...data,
+    });
+  };
+
   const [getKeyStoreInstance, setKeyStoreInstance] = uzeRequestState(KEY_STORE_STATE_KEY);
 
   const getKeyStore = async (): Promise<KeyStore | undefined> => {
     const existing = getKeyStoreInstance();
-    if (existing) return existing;
+    if (existing) {
+      debugLog("Key store request cache hit", {});
+      return existing;
+    }
 
-    if (!cache?.createKeyStore) return undefined;
+    if (!cache?.createKeyStore) {
+      debugLog("Key store missing", {});
+      return undefined;
+    }
     const newStore = await cache.createKeyStore(context);
     setKeyStoreInstance(newStore);
+    debugLog("Key store created", {
+      store: newStore?.constructor?.name,
+    });
     return newStore;
   };
 
@@ -99,12 +117,10 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const requestCache = getRequestCache();
     const requestCacheResult = requestCache?.[cacheKey] as Promise<CacheItem<T>> | undefined;
     if (requestCacheResult) {
-      if (ENABLE_CACHE_DEBUG) {
-        logger().debug("uzeCacheState", "Request cache HIT", {
-          key: cacheKey,
-          durationMs: Date.now() - startNow,
-        });
-      }
+      debugLog("Read request cache hit", {
+        key: cacheKey,
+        durationMs: Date.now() - startNow,
+      });
       return requestCacheResult.then((item) => {
         if (!item || item.version !== CACHE_ITEM_VERSION) {
           return undefined;
@@ -116,6 +132,10 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     // Fall back to key store
     const keyStore = await getKeyStore();
     if (!keyStore) {
+      debugLog("Read skipped without key store", {
+        key: cacheKey,
+        durationMs: Date.now() - startNow,
+      });
       return undefined;
     }
 
@@ -137,12 +157,11 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     }));
 
     const result = await resultPromise;
-    if (ENABLE_CACHE_DEBUG) {
-      logger().debug("uzeCacheState", `Key store ${result ? "HIT" : "MISS"}`, {
-        key: cacheKey,
-        durationMs: Date.now() - startNow,
-      });
-    }
+    debugLog(`Read key store ${result ? "hit" : "miss"}`, {
+      key: cacheKey,
+      valid: !!result && result.version === CACHE_ITEM_VERSION,
+      durationMs: Date.now() - startNow,
+    });
 
     if (!result || result.version !== CACHE_ITEM_VERSION) {
       return undefined;
@@ -171,26 +190,29 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
       [cacheKey]: Promise.resolve(cacheItem),
     }));
 
-    if (!keyStore) return;
+    if (!keyStore) {
+      debugLog("Write skipped without key store", {
+        key: cacheKey,
+        durationMs: Date.now() - now,
+      });
+      return;
+    }
 
     const howFarInFuture = effectiveExpiresAt ? effectiveExpiresAt - now : undefined;
     if (!howFarInFuture || howFarInFuture > 1000 * 10) {
       await keyStore.set(cacheKey, cacheItem, effectiveExpiresAt);
 
-      if (ENABLE_CACHE_DEBUG) {
-        logger().debug("uzeCacheState", "Setting key with expiration", {
-          key: cacheKey,
-          expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt) : undefined,
-          durationMs: Date.now() - now,
-        });
-      }
+      debugLog("Write key store", {
+        key: cacheKey,
+        expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
+        durationMs: Date.now() - now,
+      });
     } else {
-      if (ENABLE_CACHE_DEBUG) {
-        logger().debug("uzeCacheState", "Key was close to now - not caching", {
-          key: cacheKey,
-          expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt) : undefined,
-        });
-      }
+      debugLog("Write skipped due to near expiration", {
+        key: cacheKey,
+        expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
+        durationMs: Date.now() - now,
+      });
     }
   };
 
@@ -206,14 +228,15 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
 
     if (keyStore) {
       await keyStore.delete(cacheKey);
-      if (ENABLE_CACHE_DEBUG) {
-        logger().debug("uzeCacheState", "Cleared cache item", { key: cacheKey });
-      }
+      debugLog("Delete key store", { key: cacheKey });
+    } else {
+      debugLog("Delete skipped without key store", { key: cacheKey });
     }
   };
 
   const getItems = async (keys: string[]): Promise<(T | undefined | null)[]> => {
     if (!keys.length) return [];
+    const startNow = Date.now();
 
     // Naive implementation for now, looping getItems or we can port the full bulk logic if needed.
     // Given step limitations, let's port the bulk logic essentially.
@@ -242,6 +265,13 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
       const keyStore = await getKeyStore();
       if (keyStore) {
         const storeResults = await keyStore.getMany<CacheItem<T>>(missingKeys);
+        const hits = storeResults.filter((result) => result && result.version === CACHE_ITEM_VERSION).length;
+        debugLog("Read many key store", {
+          requested: keys.length,
+          missing: missingKeys.length,
+          hits,
+          durationMs: Date.now() - startNow,
+        });
 
         // Update request cache and results
         setRequestCache((prev) => {
@@ -260,7 +290,18 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
           }
           return newCache;
         });
+      } else {
+        debugLog("Read many skipped without key store", {
+          requested: keys.length,
+          missing: missingKeys.length,
+          durationMs: Date.now() - startNow,
+        });
       }
+    } else {
+      debugLog("Read many request cache hit", {
+        requested: keys.length,
+        durationMs: Date.now() - startNow,
+      });
     }
 
     return results;
@@ -288,11 +329,21 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const keyStore = await getKeyStore();
     if (keyStore) {
       await keyStore.setMany(entries);
+      debugLog("Write many key store", {
+        count: entries.length,
+        durationMs: Date.now() - now,
+      });
+    } else {
+      debugLog("Write many skipped without key store", {
+        count: entries.length,
+        durationMs: Date.now() - now,
+      });
     }
   };
 
   const clearItems = async (keys: string[]) => {
     if (!keys.length) return;
+    const startNow = Date.now();
     const cacheKeys = keys.map(generateCacheKey);
 
     setRequestCache((prev) => {
@@ -306,6 +357,15 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     const keyStore = await getKeyStore();
     if (keyStore) {
       await keyStore.deleteMany(cacheKeys);
+      debugLog("Delete many key store", {
+        count: cacheKeys.length,
+        durationMs: Date.now() - startNow,
+      });
+    } else {
+      debugLog("Delete many skipped without key store", {
+        count: cacheKeys.length,
+        durationMs: Date.now() - startNow,
+      });
     }
   };
 

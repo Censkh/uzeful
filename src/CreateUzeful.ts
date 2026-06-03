@@ -16,6 +16,7 @@ export interface CacheOptions<TEnv = any, TRequest extends BaseRequest = any> {
 
 export interface UzefulOptions<TEnv = any, TRequest extends BaseRequest = any> {
   cache?: CacheOptions<TEnv, TRequest>;
+  debug?: boolean | ((context: Context<TEnv, TRequest>) => boolean);
 }
 
 // Internal state key for options
