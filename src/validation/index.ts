@@ -6,6 +6,8 @@ import { parseZodError } from "./ValidationUtils";
 
 type MultipartFormValue = string | Blob;
 
+const isArrayPathPart = (part: string) => /^(0|[1-9]\d*)$/.test(part);
+
 const setNestedFormValue = (target: Record<string, any>, key: string, value: MultipartFormValue) => {
   const path = key.split(".").filter(Boolean);
   if (path.length === 0) {
@@ -13,19 +15,23 @@ const setNestedFormValue = (target: Record<string, any>, key: string, value: Mul
   }
 
   let current = target;
-  for (const pathPart of path.slice(0, -1)) {
-    current[pathPart] ??= {};
-    current = current[pathPart];
+  for (let index = 0; index < path.length - 1; index++) {
+    const pathPart = path[index]!;
+    const nextPathPart = path[index + 1]!;
+    const targetKey = Array.isArray(current) && isArrayPathPart(pathPart) ? Number(pathPart) : pathPart;
+    current[targetKey] ??= isArrayPathPart(nextPathPart) ? [] : {};
+    current = current[targetKey];
   }
 
   const finalKey = path[path.length - 1]!;
-  const existing = current[finalKey];
+  const targetKey = Array.isArray(current) && isArrayPathPart(finalKey) ? Number(finalKey) : finalKey;
+  const existing = current[targetKey];
   if (existing === undefined) {
-    current[finalKey] = value;
+    current[targetKey] = value;
   } else if (Array.isArray(existing)) {
     existing.push(value);
   } else {
-    current[finalKey] = [existing, value];
+    current[targetKey] = [existing, value];
   }
 };
 

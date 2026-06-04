@@ -91,6 +91,39 @@ describe("validation", () => {
     expect(result.metadata.tag).toEqual(["one", "two"]);
   });
 
+  test("validates multipart form bodies with indexed array dot-key nesting", async () => {
+    const formData = new FormData();
+    formData.append("uploadedParts.0.partNumber", "1");
+    formData.append("uploadedParts.0.etag", "calmlens-part-1");
+    formData.append("uploadedParts.1.partNumber", "2");
+    formData.append("uploadedParts.1.etag", "calmlens-part-2");
+
+    const request = new Request("https://example.com/uploads", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await run(
+      () =>
+        uzeValidatedBody(
+          z.object({
+            uploadedParts: z.array(
+              z.object({
+                partNumber: z.coerce.number().int().positive(),
+                etag: z.string(),
+              }),
+            ),
+          }),
+        ),
+      request,
+    );
+
+    expect(result.uploadedParts).toEqual([
+      { partNumber: 1, etag: "calmlens-part-1" },
+      { partNumber: 2, etag: "calmlens-part-2" },
+    ]);
+  });
+
   test("parses zod issues into public-safe details", () => {
     const result = z.object({ count: z.number() }).safeParse({ count: "bad" });
     if (result.success) throw new Error("expected validation failure");
