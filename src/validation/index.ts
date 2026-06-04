@@ -4,6 +4,45 @@ import type * as zod from "zod/v4";
 import { uzeContextInternal } from "../Context";
 import { parseZodError } from "./ValidationUtils";
 
+type MultipartFormValue = string | Blob;
+
+const setNestedFormValue = (target: Record<string, any>, key: string, value: MultipartFormValue) => {
+  const path = key.split(".").filter(Boolean);
+  if (path.length === 0) {
+    return;
+  }
+
+  let current = target;
+  for (const pathPart of path.slice(0, -1)) {
+    current[pathPart] ??= {};
+    current = current[pathPart];
+  }
+
+  const finalKey = path[path.length - 1]!;
+  const existing = current[finalKey];
+  if (existing === undefined) {
+    current[finalKey] = value;
+  } else if (Array.isArray(existing)) {
+    existing.push(value);
+  } else {
+    current[finalKey] = [existing, value];
+  }
+};
+
+const parseRequestBody = async (request: Request) => {
+  const contentType = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+  if (contentType === "multipart/form-data") {
+    const formData = await request.formData();
+    const body: Record<string, any> = {};
+    formData.forEach((value, key) => {
+      setNestedFormValue(body, key, value);
+    });
+    return body;
+  }
+
+  return request.json();
+};
+
 export const uzeValidated = async <T extends zod.ZodType>(value: any, schema: T): Promise<zod.output<T>> => {
   try {
     return await schema.parseAsync(value);
@@ -24,7 +63,7 @@ export const uzeValidatedBody = async <T extends zod.ZodType>(schema: T): Promis
   let body: any = {};
 
   try {
-    body = await request.json();
+    body = await parseRequestBody(request);
   } catch {}
   return uzeValidated(body, schema);
 };

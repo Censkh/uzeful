@@ -49,6 +49,48 @@ describe("validation", () => {
     expect(body.details.path).toBe("name");
   });
 
+  test("validates multipart form bodies with dot-key nesting", async () => {
+    const file = new File(["hello"], "hello.txt", { type: "text/plain" });
+    const formData = new FormData();
+    formData.append("name", "Ada");
+    formData.append("content.blob", file);
+    formData.append("content.type", "text/plain");
+    formData.append("processingOptions.keepAfterProcessing", "true");
+    formData.append("metadata.tag", "one");
+    formData.append("metadata.tag", "two");
+
+    const request = new Request("https://example.com/users", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await run(
+      () =>
+        uzeValidatedBody(
+          z.object({
+            name: z.string(),
+            content: z.object({
+              blob: z.instanceof(File),
+              type: z.string(),
+            }),
+            processingOptions: z.object({
+              keepAfterProcessing: z.string(),
+            }),
+            metadata: z.object({
+              tag: z.array(z.string()),
+            }),
+          }),
+        ),
+      request,
+    );
+
+    expect(result.name).toBe("Ada");
+    expect(result.content.blob.name).toBe("hello.txt");
+    expect(result.content.type).toBe("text/plain");
+    expect(result.processingOptions.keepAfterProcessing).toBe("true");
+    expect(result.metadata.tag).toEqual(["one", "two"]);
+  });
+
   test("parses zod issues into public-safe details", () => {
     const result = z.object({ count: z.number() }).safeParse({ count: "bad" });
     if (result.success) throw new Error("expected validation failure");
