@@ -136,7 +136,7 @@ const router = createRouter()
 A lot of the time you want to manage state related to a single request. `uze` provides a way to do this with `useState`.
 
 ```typescript
-import {uzeState, createStateKey} from "uzeful";
+import {uzeRequestState, createStateKey} from "uzeful";
 
 export interface UserAccount {
   id: string;
@@ -146,7 +146,7 @@ export interface UserAccount {
 const USER_ACCOUNT_KEY = createStateKey<UserAccount>("user-account");
 
 export default async function getUserInfo() {
-  const [getUserAccount, setUserAccount] = uzeState(USER_ACCOUNT_KEY);
+  const [getUserAccount, setUserAccount] = uzeRequestState(USER_ACCOUNT_KEY);
 
   let userAccount = await getUserAccount();
   if (!userAccount) {
@@ -163,12 +163,12 @@ export default async function getUserInfo() {
 #### With defaults
 
 ```typescript
-import {uzeState, createStateKey} from "uzeful";
+import {uzeRequestState, createStateKey} from "uzeful";
 
 const EVENTS_KEY = createStateKey<string[]>("events", () => ["defaultEvent"]);
 
 export default async function getUserInfo() {
-  const [getEvents] = uzeState(EVENTS_KEY);
+  const [getEvents] = uzeRequestState(EVENTS_KEY);
 
   let events = await getEvents();
   events.push("newEvent");

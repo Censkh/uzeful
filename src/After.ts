@@ -1,7 +1,7 @@
 import SendableError from "sendable-error";
 import { logger } from "./logger";
 import { postProcessResponse } from "./PostProcessResponse";
-import { createStateKey, uzeState } from "./State";
+import { createStateKey, uzeRequestState } from "./State";
 import { isResponse } from "./Utils";
 
 export enum Priority {
@@ -32,14 +32,14 @@ export interface AfterOptions {
 }
 
 export const uzeAfter = (callback: AfterCallback, options: AfterOptions = {}) => {
-  const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
+  const [getAfterCallbacks] = uzeRequestState(AFTER_CALLBACKS);
   const callbacks = getAfterCallbacks();
   const priority = options.priority ?? Priority.NORMAL;
   callbacks[priority].push(callback);
 };
 
 export const runAfterCallbacks = async (response: Response, error: Error | undefined): Promise<Response> => {
-  const [getAfterCallbacks] = uzeState(AFTER_CALLBACKS);
+  const [getAfterCallbacks] = uzeRequestState(AFTER_CALLBACKS);
   const callbacks = getAfterCallbacks();
 
   // Execute callbacks in priority order from highest to lowest

@@ -1,11 +1,11 @@
-import { createStateKey, uzeState } from "./State";
+import { createStateKey, uzeRequestState } from "./State";
 
 type ResponseModifier = (response: Response) => void | Promise<void>;
 
 const RESPONSE_MODIFIERS = createStateKey<ResponseModifier[]>("responseModifiers", () => []);
 
 export const postProcessResponse = async (response: Response) => {
-  const [getModifiers] = uzeState(RESPONSE_MODIFIERS);
+  const [getModifiers] = uzeRequestState(RESPONSE_MODIFIERS);
   const modifiers = getModifiers();
   if (!modifiers || modifiers.length === 0) {
     return response;
@@ -31,7 +31,7 @@ export const postProcessResponse = async (response: Response) => {
 };
 
 export const uzeResponseModifier = (modifier: ResponseModifier) => {
-  const [, setModifiers] = uzeState(RESPONSE_MODIFIERS);
+  const [, setModifiers] = uzeRequestState(RESPONSE_MODIFIERS);
   setModifiers((prev) => {
     return [...prev, modifier];
   });

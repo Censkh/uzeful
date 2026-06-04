@@ -2,7 +2,7 @@ import SendableError from "sendable-error";
 import { runAfterCallbacks } from "./After";
 import { type Context, createUzeContextHook, getCurrentUzeContext, runWithContext } from "./Context";
 import type { KeyStore } from "./cache/KeyStore";
-import { createStateKey, uzeState } from "./State";
+import { createStateKey, uzeRequestState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
 
 export type ContextType<TUze extends Uze<any, any>> =
@@ -16,6 +16,7 @@ export interface CacheOptions<TEnv = any, TRequest extends BaseRequest = any> {
 
 export interface UzefulOptions<TEnv = any, TRequest extends BaseRequest = any> {
   cache?: CacheOptions<TEnv, TRequest>;
+  debug?: boolean | ((context: Context<TEnv, TRequest>) => boolean);
 }
 
 // Internal state key for options
@@ -23,7 +24,7 @@ const UZEFUL_OPTIONS_KEY = createStateKey<UzefulOptions>("uzefulOptions");
 
 // Internal hook to access options
 export const uzeOptions = () => {
-  const [getOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+  const [getOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
   return getOptions() || {};
 };
 
@@ -47,7 +48,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
       const result = await runWithContext<any, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
-          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          const [_, setOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
           setOptions(options);
         }
 
@@ -62,7 +63,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
       return await runWithContext<Response, TEnv, TRequest>(withInheritedTestContext(runOptions), async () => {
         // Initialize options state available for this run
         if (options) {
-          const [_, setOptions] = uzeState(UZEFUL_OPTIONS_KEY);
+          const [_, setOptions] = uzeRequestState(UZEFUL_OPTIONS_KEY);
           setOptions(options);
         }
 
@@ -71,7 +72,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
         try {
           response = await handler();
         } catch (error: any) {
-          console.error("uzeful.fetch error", error);
+          //console.error("uzeful.fetch error", error);
           const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
           const resolvedError = error instanceof Response ? (error as any).cause : error;
           return runAfterCallbacks(errorResponse, resolvedError);
