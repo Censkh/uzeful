@@ -1,6 +1,14 @@
+import type { SendableError as SendableErrorType } from "sendable-error";
 import type { Router } from "./router";
 
-export { type BaseErrorCode, ErrorCode, SendableError } from "sendable-error";
+export { ErrorCode, SendableError } from "sendable-error";
+
+export interface BaseErrorCode {
+  getId(): string;
+  getDefaultMessage(): string | undefined;
+  is(error: any): error is SendableErrorType;
+  getStatus(): number | undefined;
+}
 export { Priority, uzeAfter } from "./After";
 export * from "./BuiltinHooks";
 export {
