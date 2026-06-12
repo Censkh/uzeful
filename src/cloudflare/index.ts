@@ -2,6 +2,8 @@ import { createStateKey, uzeRequestState } from "..";
 import { createUzeful } from "../CreateUzeful";
 import type { BaseRequest, Uze } from "../Types";
 
+export * from "./CloudflareCacheKeyStore";
+
 export const cloudflareFetch = <TEnv, TRequest extends BaseRequest = Request>(
   uze: Uze<TEnv, TRequest>,
   handler: () => Promise<Response>,

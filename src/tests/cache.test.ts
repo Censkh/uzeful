@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
-import { createUzeful } from "../src";
-import { createCacheNamespace, createVersionedCacheNamespace, uzeCacheState } from "../src/cache";
-import { InMemoryKeyStore } from "../src/cache/InMemoryKeyStore";
-import { KVKeyStore } from "../src/cache/KVKeyStore";
-import { UpstashKeyStore } from "../src/cache/UpstashKeyStore";
+import { createUzeful } from "..";
+import { createCacheNamespace, createVersionedCacheNamespace, uzeCacheState } from "../cache";
+import { InMemoryKeyStore } from "../cache/InMemoryKeyStore";
+import { KVKeyStore } from "../cache/KVKeyStore";
+import { UpstashKeyStore } from "../cache/UpstashKeyStore";
 
 afterEach(() => {
   mock.restore();
