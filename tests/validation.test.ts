@@ -49,6 +49,29 @@ describe("validation", () => {
     expect(body.details.path).toBe("name");
   });
 
+  test("rejects text/plain bodies for object body validation", async () => {
+    const request = new Request("https://example.com/users", {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=UTF-8" },
+      body: "name=Ada",
+    });
+
+    const error = await run(async () => {
+      try {
+        await uzeValidatedBody(z.object({ name: z.string() }));
+      } catch (caught) {
+        return caught as any;
+      }
+    }, request);
+
+    expect(error.message).toContain("Unsupported request body content type");
+    const response = error.toResponse();
+    const body = await response.json();
+    expect(response.status).toBe(415);
+    expect(body.code).toBe("validation/unsupported-content-type");
+    expect(body.details.contentType).toBe("text/plain");
+  });
+
   test("validates multipart form bodies with dot-key nesting", async () => {
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
     const formData = new FormData();

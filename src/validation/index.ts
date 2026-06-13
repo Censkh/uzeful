@@ -6,6 +6,24 @@ import { parseZodError } from "./ValidationUtils";
 
 type MultipartFormValue = string | Blob;
 
+const getRequestContentType = (request: Request) =>
+  request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+
+const getZodSchemaType = (schema: zod.ZodType): string | undefined =>
+  (schema as any)._zod?.def?.type ?? (schema as any).def?.type;
+
+const expectsObjectBody = (schema: zod.ZodType) => getZodSchemaType(schema) === "object";
+
+const throwUnsupportedBodyContentType = (contentType: string | undefined) => {
+  throw new SendableError({
+    message: `Unsupported request body content type${contentType ? ` '${contentType}'` : ""}. Expected application/json or multipart/form-data.`,
+    code: "validation/unsupported-content-type",
+    details: { contentType },
+    status: 415,
+    public: true,
+  });
+};
+
 const isArrayPathPart = (part: string) => /^(0|[1-9]\d*)$/.test(part);
 
 const setNestedFormValue = (target: Record<string, any>, key: string, value: MultipartFormValue) => {
@@ -36,7 +54,7 @@ const setNestedFormValue = (target: Record<string, any>, key: string, value: Mul
 };
 
 const parseRequestBody = async (request: Request) => {
-  const contentType = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+  const contentType = getRequestContentType(request);
   if (contentType === "multipart/form-data") {
     const formData = await request.formData();
     const body: Record<string, any> = {};
@@ -66,7 +84,12 @@ export const uzeValidated = async <T extends zod.ZodType>(value: any, schema: T)
 
 export const uzeValidatedBody = async <T extends zod.ZodType>(schema: T): Promise<zod.output<T>> => {
   const { request } = uzeContextInternal();
+  const contentType = getRequestContentType(request);
   let body: any = {};
+
+  if (expectsObjectBody(schema) && contentType === "text/plain") {
+    throwUnsupportedBodyContentType(contentType);
+  }
 
   try {
     body = await parseRequestBody(request);
