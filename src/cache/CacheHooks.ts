@@ -1,4 +1,4 @@
-import { uzeContext } from "../Context";
+import { uzeContextInternal as uzeContext } from "../Context";
 import { uzeOptions } from "../CreateUzeful";
 import { logger } from "../logger";
 import { createStateKey, uzeRequestState } from "../State";
