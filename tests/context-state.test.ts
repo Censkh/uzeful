@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { createStateKey, createUzeful, uzeContext, uzeRequestId, uzeRequestState, uzeSharedState } from "../src";
+import {
+  createStateKey,
+  createUzeful,
+  uzeContextInternal,
+  uzeRequestId,
+  uzeRequestState,
+  uzeSharedState,
+} from "../src";
 import { run } from "./helpers";
 
 describe("context and state", () => {
@@ -7,7 +14,7 @@ describe("context and state", () => {
     const key = createStateKey("counter", () => 1);
 
     const first = await run(() => {
-      const context = uzeContext();
+      const context = uzeContextInternal();
       const [getCounter, setCounter] = uzeRequestState(key);
 
       expect(context.request.url).toBe("https://example.com/");
@@ -53,7 +60,7 @@ describe("context and state", () => {
         rawContext: {},
       },
       () => {
-        const context = uzeContext();
+        const context = uzeContextInternal();
         context.waitUntil(Promise.resolve("direct"));
         context.waitUntil(() => Promise.resolve("lazy"), "lazy-work");
       },

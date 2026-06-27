@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { createUzeful, uzeContext } from "../src";
+import { createUzeful, uzeContextInternal } from "../src";
 import { cloudflareFetch, cloudflareQueue, cloudflareRun, cloudflareTest, uzeCloudflareQueue } from "../src/cloudflare";
 import { createRouter, lazyRoute } from "../src/router";
 import { run } from "./helpers";
@@ -30,7 +30,7 @@ describe("router and cloudflare adapters", () => {
     const context = { waitUntil: mock((promise: Promise<any>) => promise), custom: true };
 
     const fetchHandler = cloudflareFetch(uze, async () => {
-      const current = uzeContext<{ value: string }>();
+      const current = uzeContextInternal<{ value: string }>();
       current.waitUntil(Promise.resolve("later"));
       return new Response(current.env.value);
     });
@@ -40,7 +40,7 @@ describe("router and cloudflare adapters", () => {
     expect(context.waitUntil).toHaveBeenCalled();
 
     const runHandler = cloudflareRun(uze, async () => {
-      expect(uzeContext<{ value: string }>().env.value).toBe("run-env");
+      expect(uzeContextInternal<{ value: string }>().env.value).toBe("run-env");
     });
     await runHandler({ value: "run-env" }, context);
 
@@ -54,7 +54,7 @@ describe("router and cloudflare adapters", () => {
     const finished: string[] = [];
 
     const result = await cloudflareTest({ value: "env" }, async () => {
-      const context = uzeContext<{ value: string }>();
+      const context = uzeContextInternal<{ value: string }>();
       context.waitUntil(Promise.resolve().then(() => finished.push("waited")));
       return context.env.value;
     });
