@@ -85,8 +85,8 @@
     "@upstash/redis": "^1.38.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.1",
-    "@types/node": "^26.0.1",
+    "@biomejs/biome": "^2.5.2",
+    "@types/node": "^26.1.0",
     "@types/qs": "^6.15.1",
     "@upstash/redis": "^1.38.0",
     "commander": "^15.0.0",
