@@ -68,15 +68,10 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     waitUntil: (promiseOrFunction, label) => {
       const promise = typeof promiseOrFunction === "function" ? promiseOrFunction() : promiseOrFunction;
       const id = label ? `${label} (${quickId()})` : quickId();
-      logger().debug("waitUntil", "Promise started", { id });
-      promise
-        .catch((error) => {
-          logger().error("waitUntil", "Promise failed with error: ", { id }, error);
-          throw error;
-        })
-        .finally(() => {
-          logger().debug("waitUntil", "Promise finished", { id });
-        });
+      promise.catch((error) => {
+        logger().error("waitUntil", "Promise failed with error: ", { id }, error);
+        throw error;
+      });
       waitUntil(promise);
     },
     startMs: Date.now(),

@@ -1,6 +1,5 @@
 import { uzeContextInternal as uzeContext } from "../Context";
 import { uzeOptions } from "../CreateUzeful";
-import { logger } from "../logger";
 import { createStateKey, uzeRequestState } from "../State";
 import type { CacheSetItem, KeyStore } from "./KeyStore";
 
@@ -60,8 +59,7 @@ const MAX_DEBUG_VALUE_LENGTH = 1000;
 
 export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   const context = uzeContext();
-  const { cache, debug } = uzeOptions();
-  const debugEnabled = typeof debug === "function" ? debug(context) : !!debug;
+  const { cache } = uzeOptions();
   // Default to local if specific config is missing, though ensureKeyStore is critical for persistence
   const keyPrefix = cache?.getKeyPrefix ? cache.getKeyPrefix(context) : "local";
 
@@ -72,17 +70,9 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     return `${keyPrefix}:${namespaceId}${key ? `:${key}` : ""}`;
   };
 
-  const debugLog = (message: string, data: Record<string, unknown>) => {
-    if (!debugEnabled) return;
-    logger().debug("uzeCacheState", message, {
-      namespace: namespace.id,
-      keyPrefix,
-      ...data,
-    });
-  };
+  const debugLog = (_message: string, _data: Record<string, unknown>) => {};
 
   const debugValue = (value: unknown) => {
-    if (!debugEnabled) return undefined;
     try {
       const serialized = JSON.stringify(value);
       if (!serialized) return String(value);

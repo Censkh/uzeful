@@ -27,9 +27,6 @@ program
       const entryExpression = callExpression
         .getChildrenOfKind(SyntaxKind.Identifier)
         .find((id) => id.getText() === "openApiEntry");
-      if (entryExpression) {
-        console.log(entryExpression.getDefinitions());
-      }
     }
   });
 
