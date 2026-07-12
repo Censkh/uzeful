@@ -1,4 +1,4 @@
-import { parse as parseCookies } from "cookie";
+import { parseCookie as parseCookies } from "cookie";
 import { uzeContextInternal } from "./Context";
 import { uzeResponseModifier } from "./PostProcessResponse";
 import { createStateKey, uzeRequestState } from "./State";
