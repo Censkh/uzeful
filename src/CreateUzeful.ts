@@ -1,6 +1,12 @@
 import SendableError from "sendable-error";
 import { runAfterCallbacks } from "./After";
-import { type Context, createUzeContextHook, getCurrentUzeContext, runWithContext } from "./Context";
+import {
+  type Context,
+  createUzeContextHook,
+  createUzeTestContextHook,
+  getCurrentUzeContext,
+  runWithContext,
+} from "./Context";
 import type { KeyStore } from "./cache/KeyStore";
 import { createStateKey, uzeRequestState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
@@ -85,6 +91,7 @@ export const createUzeful = <TEnv, TRequest extends BaseRequest = Request>(
     },
     hooks: {
       uzeContext: createUzeContextHook<TEnv, TRequest>(),
+      uzeTestContext: createUzeTestContextHook(),
     },
   } satisfies Uze<TEnv, TRequest>;
 

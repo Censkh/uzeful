@@ -1,4 +1,4 @@
-import type { ContextOptions, createUzeContextHook } from "./Context";
+import type { ContextOptions, createUzeContextHook, createUzeTestContextHook } from "./Context";
 
 export interface BaseHeaders {
   get(name: string): string | null;
@@ -21,6 +21,7 @@ export interface Uze<TEnv, TRequest extends BaseRequest = Request> {
   run: <T>(options: ContextOptions<TEnv, TRequest>, handler: () => Promise<T>) => Promise<T>;
   hooks: {
     uzeContext: ReturnType<typeof createUzeContextHook<TEnv, TRequest>>;
+    uzeTestContext: ReturnType<typeof createUzeTestContextHook>;
   };
 }
 

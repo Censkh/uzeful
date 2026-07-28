@@ -82,15 +82,13 @@ export const cloudflareQueue = <TEnv, TRequest extends BaseRequest = Request>(
  */
 export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Promise<TReturn>): Promise<TReturn> => {
   const uze = createUzeful<TEnv, Request>();
-  const waitUntilPromises: Promise<any>[] = [];
 
   const context = {
     __uzeTestContext: true,
-    waitUntil: (promise: Promise<any>) => {
-      waitUntilPromises.push(promise);
-    },
+    waitUntil: (_promise: Promise<any>) => {},
   };
 
+  let cleanup: (() => Promise<void>) | undefined;
   const result = await uze.run(
     {
       request: undefined as any,
@@ -98,13 +96,13 @@ export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Pr
       waitUntil: context.waitUntil,
       rawContext: context,
     },
-    handler,
+    async () => {
+      cleanup = uze.hooks.uzeTestContext().cleanup;
+      return await handler();
+    },
   );
 
-  while (waitUntilPromises.length > 0) {
-    const batch = waitUntilPromises.splice(0);
-    await Promise.all(batch);
-  }
+  await cleanup?.();
 
   return result;
 };
