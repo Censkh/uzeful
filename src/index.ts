@@ -7,7 +7,9 @@ export {
   type Context,
   type ContextOptions,
   createUzeContextHook,
+  createUzeTestContextHook,
   runWithContext,
+  type UzeTestContext,
   uzeContextInternal,
 } from "./Context";
 export { uzeCookies } from "./Cookies";
