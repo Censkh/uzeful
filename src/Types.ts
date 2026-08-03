@@ -1,5 +1,3 @@
-import type { ContextOptions, createUzeContextHook, createUzeTestContextHook } from "./Context";
-
 export interface BaseHeaders {
   get(name: string): string | null;
   has(name: string): boolean;
@@ -16,17 +14,9 @@ export interface BaseRequest {
 export type Middleware = () => void | Promise<void>;
 export type Route = () => Promise<Response> | Response;
 
-export interface Uze<TEnv, TRequest extends BaseRequest = Request> {
-  fetch: (options: ContextOptions<TEnv, TRequest>, handler: () => Promise<Response>) => Promise<Response>;
-  run: <T>(options: ContextOptions<TEnv, TRequest>, handler: () => Promise<T>) => Promise<T>;
-  hooks: {
-    uzeContext: ReturnType<typeof createUzeContextHook<TEnv, TRequest>>;
-    uzeTestContext: ReturnType<typeof createUzeTestContextHook>;
-  };
-}
-
-export interface UzeAdapter<TEnv, TRequest extends BaseRequest = Request> {
-  handler: (request: TRequest) => Promise<Response>;
+export interface UzeTestOptions<TEnv> {
+  env: TEnv;
+  state?: unknown;
 }
 
 export interface CookieStore {

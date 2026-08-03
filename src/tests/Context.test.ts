@@ -1,15 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { createUzeful, uzeContextInternal } from "..";
-import { cloudflareTest } from "../cloudflare";
+import { UzefulApp, uzeContextInternal, uzeTestContext } from "..";
 
 describe("uzeTestContext()", () => {
   test("cleanup drains work scheduled by pending waitUntil work", async () => {
-    const uze = createUzeful<Record<string, never>, Request>();
+    const uze = new UzefulApp<Record<string, never>, Request>();
     let resolveFirstWork!: () => void;
     let resolveFollowUpWork!: () => void;
     let followUpComplete = false;
 
-    await uze.run(
+    await uze.execute(
       {
         request: new Request("https://example.com/"),
         env: {},
@@ -32,7 +31,7 @@ describe("uzeTestContext()", () => {
           }),
         );
 
-        const testContext = uze.hooks.uzeTestContext();
+        const testContext = uzeTestContext();
         expect(testContext.cleanup).toBe(testContext.drainWaitUntils);
         const completed = testContext.cleanup();
         resolveFirstWork();
@@ -46,10 +45,11 @@ describe("uzeTestContext()", () => {
     expect(followUpComplete).toBe(true);
   });
 
-  test("cloudflareTest waits for registered work", async () => {
+  test("test waits for registered work", async () => {
     let workCompleted = false;
+    const uze = new UzefulApp<Record<string, never>, Request>();
 
-    await cloudflareTest({}, async () => {
+    await uze.test({ env: {} }, async () => {
       uzeContextInternal().waitUntil(
         Promise.resolve().then(() => {
           workCompleted = true;
@@ -61,12 +61,12 @@ describe("uzeTestContext()", () => {
   });
 
   test("is unavailable outside a test context", async () => {
-    const uze = createUzeful<Record<string, never>, Request>();
+    const uze = new UzefulApp<Record<string, never>, Request>();
 
-    await uze.run(
+    await uze.execute(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
-        expect(() => uze.hooks.uzeTestContext()).toThrow("test context");
+        expect(() => uzeTestContext()).toThrow("test context");
       },
     );
   });

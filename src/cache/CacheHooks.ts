@@ -1,6 +1,6 @@
 import { uzeContextInternal as uzeContext } from "../Context";
-import { uzeOptions } from "../CreateUzeful";
 import { createStateKey, uzeRequestState } from "../State";
+import { uzeOptions } from "../UzefulApp";
 import type { CacheSetItem, KeyStore } from "./KeyStore";
 
 export interface SimpleCacheNamespaceOptions {

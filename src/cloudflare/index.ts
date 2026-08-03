@@ -1,46 +1,8 @@
 import { createStateKey, uzeRequestState } from "..";
-import { createUzeful } from "../CreateUzeful";
-import type { BaseRequest, Uze } from "../Types";
+import type { BaseRequest } from "../Types";
+import { UzefulApp } from "../UzefulApp";
 
 export * from "./CloudflareCacheKeyStore";
-
-export const cloudflareFetch = <TEnv, TRequest extends BaseRequest = Request>(
-  uze: Uze<TEnv, TRequest>,
-  handler: () => Promise<Response>,
-) => {
-  return async (
-    request: TRequest,
-    env: TEnv,
-    context: { waitUntil: (p: Promise<any>) => void } & Record<string, any>,
-  ) => {
-    return await uze.fetch(
-      {
-        request,
-        env,
-        waitUntil: context.waitUntil.bind(context),
-        rawContext: context,
-      },
-      handler,
-    );
-  };
-};
-
-export const cloudflareRun = <TEnv, TRequest extends BaseRequest = Request>(
-  uze: Uze<TEnv, TRequest>,
-  handler: () => Promise<void>,
-) => {
-  return async (env: TEnv, context: { waitUntil: (p: Promise<any>) => void } & Record<string, any>) => {
-    return await uze.run(
-      {
-        request: undefined as any,
-        env,
-        waitUntil: context.waitUntil.bind(context),
-        rawContext: context,
-      },
-      handler,
-    );
-  };
-};
 
 const QUEUE_STATE_KEY = createStateKey<Record<string, any>>("cloudflare-queue-state");
 
@@ -49,60 +11,60 @@ export const uzeCloudflareQueue = () => {
   return getQueueState();
 };
 
-export const cloudflareQueue = <TEnv, TRequest extends BaseRequest = Request>(
-  uze: Uze<TEnv, TRequest>,
-  handler: () => Promise<void>,
-) => {
-  return async (
-    batch: { messages: ReadonlyArray<{ body: unknown }> },
-    env: TEnv,
-    context: { waitUntil: (p: Promise<any>) => void } & Record<string, any>,
-  ) => {
-    return await uze.run(
-      {
-        request: undefined as any,
-        env,
-        waitUntil: context.waitUntil.bind(context),
-        rawContext: context,
-      },
-      async () => {
-        const [getQueueState, setQueueState] = uzeRequestState(QUEUE_STATE_KEY);
-        setQueueState({
-          messages: batch.messages,
-        });
-        await handler();
-      },
-    );
-  };
-};
+export class CloudflareUzefulApp<TEnv, TRequest extends BaseRequest = Request> extends UzefulApp<TEnv, TRequest> {
+  fetch(handler: () => Promise<Response>) {
+    return async (
+      request: TRequest,
+      env: TEnv,
+      context: { waitUntil: (promise: Promise<any>) => void } & Record<string, any>,
+    ) => {
+      return await this.dispatch(
+        {
+          request,
+          env,
+          waitUntil: context.waitUntil.bind(context),
+          rawContext: context,
+        },
+        handler,
+      );
+    };
+  }
 
-/**
- * Helper function for running tests with Cloudflare test environment
- * Allows using uze hooks in test context
- */
-export const cloudflareTest = async <TEnv, TReturn>(env: TEnv, handler: () => Promise<TReturn>): Promise<TReturn> => {
-  const uze = createUzeful<TEnv, Request>();
+  run(handler: () => Promise<void>) {
+    return async (env: TEnv, context: { waitUntil: (promise: Promise<any>) => void } & Record<string, any>) => {
+      return await this.execute(
+        {
+          request: undefined as any,
+          env,
+          waitUntil: context.waitUntil.bind(context),
+          rawContext: context,
+        },
+        handler,
+      );
+    };
+  }
 
-  const context = {
-    __uzeTestContext: true,
-    waitUntil: (_promise: Promise<any>) => {},
-  };
-
-  let cleanup: (() => Promise<void>) | undefined;
-  const result = await uze.run(
-    {
-      request: undefined as any,
-      env,
-      waitUntil: context.waitUntil,
-      rawContext: context,
-    },
-    async () => {
-      cleanup = uze.hooks.uzeTestContext().cleanup;
-      return await handler();
-    },
-  );
-
-  await cleanup?.();
-
-  return result;
-};
+  queue(handler: () => Promise<void>) {
+    return async (
+      batch: { messages: ReadonlyArray<{ body: unknown }> },
+      env: TEnv,
+      context: { waitUntil: (promise: Promise<any>) => void } & Record<string, any>,
+    ) => {
+      return await this.execute(
+        {
+          request: undefined as any,
+          env,
+          waitUntil: context.waitUntil.bind(context),
+          rawContext: context,
+        },
+        async () => {
+          const [getQueueState, setQueueState] = uzeRequestState(QUEUE_STATE_KEY);
+          setQueueState({
+            messages: batch.messages,
+          });
+          await handler();
+        },
+      );
+    };
+  }
+}

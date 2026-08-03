@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createUzeful, Priority, uzeAfter, uzeCookies, uzeResponseModifier } from "../src";
+import { Priority, UzefulApp, uzeAfter, uzeCookies, uzeResponseModifier } from "../src";
 
 describe("responses, after hooks, and cookies", () => {
   test("runs after hooks by priority and allows response replacement", async () => {
     const seen: string[] = [];
 
-    const response = await createUzeful<Record<string, unknown>, Request>().fetch(
+    const response = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         uzeAfter(
@@ -33,7 +33,7 @@ describe("responses, after hooks, and cookies", () => {
   });
 
   test("applies response modifiers but skips redirects", async () => {
-    const ok = await createUzeful<Record<string, unknown>, Request>().fetch(
+    const ok = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         uzeResponseModifier((response) => response.headers.set("x-modified", "yes"));
@@ -41,7 +41,7 @@ describe("responses, after hooks, and cookies", () => {
       },
     );
 
-    const redirect = await createUzeful<Record<string, unknown>, Request>().fetch(
+    const redirect = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         uzeResponseModifier((response) => response.headers.set("x-modified", "yes"));
@@ -54,7 +54,7 @@ describe("responses, after hooks, and cookies", () => {
   });
 
   test("reads, sets, and deletes cookies through Set-Cookie modifiers", async () => {
-    const response = await createUzeful<Record<string, unknown>, Request>().fetch(
+    const response = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       {
         request: new Request("https://example.com/", { headers: { cookie: "session=abc; theme=dark" } }),
         env: {},

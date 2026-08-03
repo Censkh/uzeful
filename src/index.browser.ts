@@ -1,9 +1,7 @@
-export const createUzeful = () => {
-  return {
-    hooks: {
-      uzeContext: {},
-    },
+export class UzefulApp {
+  readonly hooks = {
+    uzeContext: {},
   };
-};
+}
 
 export const uzeCookies = () => {};

@@ -40,14 +40,14 @@ npm install uze
   `wrangler.toml` file
 
 ```typescript
-import {createUze} from "uzeful";
+import {CloudflareUzefulApp} from "uzeful/cloudflare";
 import type {D1Database, Request} from "@cloudflare/workers-types";
 
 export interface Env {
   DB: D1Database;
 }
 
-const uze = createUze<Env, Request>();
+const uze = new CloudflareUzefulApp<Env, Request>();
 
 // hook to use in all of your route handlers
 export const uzeContext = uze.hooks.uzeContext;
@@ -59,17 +59,7 @@ const handler = async (): Promise<Response> => {
 }
 
 export default {
-  fetch: async (req: Request, env: Env, ctx: any) => {
-    return await uze.handle(
-      {
-        request: req,
-        env,
-        waitUntil: ctx.waitUntil,
-        rawContext: ctx,
-      },
-      handler
-    );
-  },
+  fetch: uze.fetch(handler),
 };
 ```
 
@@ -85,17 +75,7 @@ const router = createRouter()
   });
 
 export default {
-  fetch: async (req: Request, env: Env, ctx: any) => {
-    return await uze.handle(
-      {
-        request: req,
-        env,
-        waitUntil: ctx.waitUntil,
-        rawContext: ctx,
-      },
-      router.handler,
-    );
-  },
+  fetch: uze.fetch(router.fetch),
 };
 ```
 

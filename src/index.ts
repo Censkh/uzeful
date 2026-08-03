@@ -7,16 +7,16 @@ export {
   type Context,
   type ContextOptions,
   createUzeContextHook,
-  createUzeTestContextHook,
   runWithContext,
   type UzeTestContext,
   uzeContextInternal,
+  uzeTestContext,
 } from "./Context";
 export { uzeCookies } from "./Cookies";
-export { type ContextType, createUzeful } from "./CreateUzeful";
 export { uzeResponseModifier } from "./PostProcessResponse";
 export { createStateKey, type StateKey, uzeRequestState, uzeSharedState } from "./State";
-export type { CookieStore, Middleware, Route, Uze, UzeAdapter } from "./Types";
+export type { CookieStore, Middleware, Route } from "./Types";
+export { type ContextType, UzefulApp, type UzefulAppOptions } from "./UzefulApp";
 
 export function openApiEntry(router: Router) {
   // used for static analysis

@@ -62,7 +62,7 @@ export const createUzeContextHook =
     return context as any;
   };
 
-export const createUzeTestContextHook = () => (): UzeTestContext => {
+export const uzeTestContext = (): UzeTestContext => {
   const context = CONTEXT_STORAGE.getStore();
   if (!context?.rawContext?.__uzeTestContext) {
     throw new Error(`Cannot use test context outside of a test context block: ${new Error().stack}`);

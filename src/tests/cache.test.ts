@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
-import { createUzeful } from "..";
+import { UzefulApp } from "..";
 import { createCacheNamespace, createVersionedCacheNamespace, uzeCacheState } from "../cache";
 import { InMemoryKeyStore } from "../cache/InMemoryKeyStore";
 import { KVKeyStore } from "../cache/KVKeyStore";
@@ -13,7 +13,7 @@ describe("cache", () => {
   test("stores, reads, bulk reads, and clears values through configured key store", async () => {
     const store = new InMemoryKeyStore();
     const namespace = createCacheNamespace<{ name: string }>({ id: "users", type: "edge" });
-    const uze = createUzeful<Record<string, unknown>, Request>({
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
       cache: {
         stores: { edge: async () => store },
         getKeyPrefix: () => "tenant-a",
@@ -21,7 +21,7 @@ describe("cache", () => {
       },
     });
 
-    await uze.run(
+    await uze.execute(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         const cache = uzeCacheState(namespace);
@@ -52,7 +52,7 @@ describe("cache", () => {
   test("uses cache versions in versioned namespaces", async () => {
     const store = new InMemoryKeyStore();
     const namespace = createVersionedCacheNamespace<string>({ id: "settings", type: "edge" });
-    const uze = createUzeful<Record<string, unknown>, Request>({
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
       cache: {
         stores: { edge: async () => store },
         getKeyPrefix: () => "app",
@@ -60,7 +60,7 @@ describe("cache", () => {
       },
     });
 
-    await uze.run(
+    await uze.execute(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         const cache = uzeCacheState(namespace);
@@ -76,7 +76,7 @@ describe("cache", () => {
     const replicatedStore = new InMemoryKeyStore();
     const edgeNamespace = createCacheNamespace<string>({ id: "state", type: "edge" });
     const replicatedNamespace = createCacheNamespace<string>({ id: "state", type: "replicated" });
-    const uze = createUzeful<Record<string, unknown>, Request>({
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
       cache: {
         stores: {
           edge: async () => edgeStore,
@@ -87,7 +87,7 @@ describe("cache", () => {
       },
     });
 
-    await uze.run(
+    await uze.execute(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
         await uzeCacheState(edgeNamespace).set("edge value");
@@ -103,7 +103,7 @@ describe("cache", () => {
 
   test("rejects namespaces whose store type is not configured", async () => {
     const namespace = createCacheNamespace<string>({ id: "settings", type: "replicated" });
-    const uze = createUzeful<Record<string, unknown>, Request>({
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
       cache: {
         stores: { edge: async () => new InMemoryKeyStore() },
         getKeyPrefix: () => "app",
@@ -112,7 +112,7 @@ describe("cache", () => {
     });
 
     await expect(
-      uze.run(
+      uze.execute(
         { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
         async () => uzeCacheState(namespace).get(),
       ),

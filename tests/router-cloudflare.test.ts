@@ -1,10 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
-import { createUzeful, uzeContextInternal } from "../src";
-import { cloudflareFetch, cloudflareQueue, cloudflareRun, cloudflareTest, uzeCloudflareQueue } from "../src/cloudflare";
+import { uzeContextInternal } from "../src";
+import { CloudflareUzefulApp, uzeCloudflareQueue } from "../src/cloudflare";
 import { createRouter, lazyRoute } from "../src/router";
 import { run } from "./helpers";
 
-describe("router and cloudflare adapters", () => {
+describe("router and Cloudflare Uzeful app", () => {
   test("router fetch reads the active request from context", async () => {
     const router = createRouter();
     router.get("/hello/:name", ({ name }) => new Response(`hello ${name}`));
@@ -25,11 +25,11 @@ describe("router and cloudflare adapters", () => {
     expect(route).toHaveBeenCalledTimes(2);
   });
 
-  test("cloudflare adapters provide context, env, waitUntil, and queue messages", async () => {
-    const uze = createUzeful<{ value: string }, Request>();
+  test("Cloudflare app provides context, env, waitUntil, and queue messages", async () => {
+    const uze = new CloudflareUzefulApp<{ value: string }, Request>();
     const context = { waitUntil: mock((promise: Promise<any>) => promise), custom: true };
 
-    const fetchHandler = cloudflareFetch(uze, async () => {
+    const fetchHandler = uze.fetch(async () => {
       const current = uzeContextInternal<{ value: string }>();
       current.waitUntil(Promise.resolve("later"));
       return new Response(current.env.value);
@@ -39,21 +39,22 @@ describe("router and cloudflare adapters", () => {
     expect(await fetchResponse.text()).toBe("env");
     expect(context.waitUntil).toHaveBeenCalled();
 
-    const runHandler = cloudflareRun(uze, async () => {
+    const runHandler = uze.run(async () => {
       expect(uzeContextInternal<{ value: string }>().env.value).toBe("run-env");
     });
     await runHandler({ value: "run-env" }, context);
 
-    const queueHandler = cloudflareQueue(uze, async () => {
+    const queueHandler = uze.queue(async () => {
       expect(uzeCloudflareQueue()).toEqual({ messages: [{ body: { id: 1 } }] });
     });
     await queueHandler({ messages: [{ body: { id: 1 } }] }, { value: "queue-env" }, context);
   });
 
-  test("cloudflareTest waits for waitUntil promises", async () => {
+  test("Uzeful test waits for waitUntil promises", async () => {
     const finished: string[] = [];
+    const uze = new CloudflareUzefulApp<{ value: string }, Request>();
 
-    const result = await cloudflareTest({ value: "env" }, async () => {
+    const result = await uze.test({ env: { value: "env" } }, async () => {
       const context = uzeContextInternal<{ value: string }>();
       context.waitUntil(Promise.resolve().then(() => finished.push("waited")));
       return context.env.value;

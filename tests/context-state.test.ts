@@ -1,12 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  createStateKey,
-  createUzeful,
-  uzeContextInternal,
-  uzeRequestId,
-  uzeRequestState,
-  uzeSharedState,
-} from "../src";
+import { createStateKey, UzefulApp, uzeContextInternal, uzeRequestId, uzeRequestState, uzeSharedState } from "../src";
 import { run } from "./helpers";
 
 describe("context and state", () => {
@@ -52,7 +45,7 @@ describe("context and state", () => {
   test("waitUntil accepts promises and lazy promise functions", async () => {
     const waited: Promise<any>[] = [];
 
-    await createUzeful<Record<string, unknown>, Request>().run(
+    await new UzefulApp<Record<string, unknown>, Request>().execute(
       {
         request: new Request("https://example.com/"),
         env: {},
