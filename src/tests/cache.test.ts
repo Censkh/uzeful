@@ -12,10 +12,10 @@ afterEach(() => {
 describe("cache", () => {
   test("stores, reads, bulk reads, and clears values through configured key store", async () => {
     const store = new InMemoryKeyStore();
-    const namespace = createCacheNamespace<{ name: string }>({ id: "users" });
+    const namespace = createCacheNamespace<{ name: string }>({ id: "users", type: "edge" });
     const uze = createUzeful<Record<string, unknown>, Request>({
       cache: {
-        createKeyStore: async () => store,
+        stores: { edge: async () => store },
         getKeyPrefix: () => "tenant-a",
         getVersion: () => "v1",
       },
@@ -51,10 +51,10 @@ describe("cache", () => {
 
   test("uses cache versions in versioned namespaces", async () => {
     const store = new InMemoryKeyStore();
-    const namespace = createVersionedCacheNamespace<string>({ id: "settings" });
+    const namespace = createVersionedCacheNamespace<string>({ id: "settings", type: "edge" });
     const uze = createUzeful<Record<string, unknown>, Request>({
       cache: {
-        createKeyStore: async () => store,
+        stores: { edge: async () => store },
         getKeyPrefix: () => "app",
         getVersion: () => "v2",
       },
@@ -68,7 +68,55 @@ describe("cache", () => {
       },
     );
 
-    expect(await store.get("app:settings:v2")).toMatchObject({ data: "enabled" });
+    expect(await store.get("edge:app:settings:v2")).toMatchObject({ data: "enabled" });
+  });
+
+  test("uses the configured store for each namespace type", async () => {
+    const edgeStore = new InMemoryKeyStore();
+    const replicatedStore = new InMemoryKeyStore();
+    const edgeNamespace = createCacheNamespace<string>({ id: "state", type: "edge" });
+    const replicatedNamespace = createCacheNamespace<string>({ id: "state", type: "replicated" });
+    const uze = createUzeful<Record<string, unknown>, Request>({
+      cache: {
+        stores: {
+          edge: async () => edgeStore,
+          replicated: async () => replicatedStore,
+        },
+        getKeyPrefix: () => "app",
+        getVersion: () => "v1",
+      },
+    });
+
+    await uze.run(
+      { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
+      async () => {
+        await uzeCacheState(edgeNamespace).set("edge value");
+        await uzeCacheState(replicatedNamespace).set("replicated value");
+      },
+    );
+
+    expect(await edgeStore.get("edge:app:state")).toMatchObject({ data: "edge value" });
+    expect(await replicatedStore.get("replicated:app:state")).toMatchObject({
+      data: "replicated value",
+    });
+  });
+
+  test("rejects namespaces whose store type is not configured", async () => {
+    const namespace = createCacheNamespace<string>({ id: "settings", type: "replicated" });
+    const uze = createUzeful<Record<string, unknown>, Request>({
+      cache: {
+        stores: { edge: async () => new InMemoryKeyStore() },
+        getKeyPrefix: () => "app",
+        getVersion: () => "v1",
+      },
+    });
+
+    await expect(
+      uze.run(
+        { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
+        async () => uzeCacheState(namespace).get(),
+      ),
+    ).rejects.toThrow("Cache store 'replicated' is not configured");
   });
 
   test("InMemoryKeyStore expires items", async () => {

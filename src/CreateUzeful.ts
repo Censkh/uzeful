@@ -7,6 +7,7 @@ import {
   getCurrentUzeContext,
   runWithContext,
 } from "./Context";
+import type { CacheStoreType } from "./cache/CacheHooks";
 import type { KeyStore } from "./cache/KeyStore";
 import { createStateKey, uzeRequestState } from "./State";
 import type { BaseRequest, Uze } from "./Types";
@@ -14,8 +15,12 @@ import type { BaseRequest, Uze } from "./Types";
 export type ContextType<TUze extends Uze<any, any>> =
   TUze extends Uze<infer TEnv, infer TRequest> ? Context<TEnv, TRequest> : never;
 
+export type CacheStoreFactory<TEnv = any, TRequest extends BaseRequest = any> = (
+  context: Context<TEnv, TRequest>,
+) => Promise<KeyStore>;
+
 export interface CacheOptions<TEnv = any, TRequest extends BaseRequest = any> {
-  createKeyStore: (context: Context<TEnv, TRequest>) => Promise<KeyStore>;
+  stores: Partial<Record<CacheStoreType, CacheStoreFactory<TEnv, TRequest>>>;
   getVersion: (context: Context<TEnv, TRequest>) => string;
   getKeyPrefix: (context: Context<TEnv, TRequest>) => string;
 }
