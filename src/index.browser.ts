@@ -5,3 +5,5 @@ export class UzefulApp {
 }
 
 export const uzeCookies = () => {};
+
+export const uzeContextInternal = () => undefined;
