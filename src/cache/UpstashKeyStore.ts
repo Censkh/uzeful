@@ -1,8 +1,10 @@
 import type { Redis } from "@upstash/redis";
 import type { CacheSetItem, KeyStore } from "./KeyStore";
 
+type RedisClient = Pick<Redis, "get" | "set" | "del" | "mget" | "pipeline">;
+
 export class UpstashKeyStore implements KeyStore {
-  constructor(private readonly redis: Redis) {}
+  constructor(private readonly redis: RedisClient) {}
 
   async get<T>(key: string): Promise<T | null> {
     return await this.redis.get<T>(key);
