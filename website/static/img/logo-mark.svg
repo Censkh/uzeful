@@ -1,0 +1,6 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Uzeful</title>
+  <rect width="48" height="48" rx="14" fill="#111827"/>
+  <path d="M13 14V27C13 33.075 17.925 38 24 38C30.075 38 35 33.075 35 27V14H29.5V27C29.5 30.038 27.038 32.5 24 32.5C20.962 32.5 18.5 30.038 18.5 27V14H13Z" fill="#F3F4F6"/>
+  <circle cx="24" cy="10" r="3" fill="#7CFFB2"/>
+</svg>

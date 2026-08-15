@@ -62,6 +62,12 @@ const ENFORCE_MAX_CACHE_LIFETIME = false;
 
 const REQUEST_CACHE_KEY = createStateKey<Record<string, Promise<any>>>("request-cache");
 const KEY_STORE_STATE_KEY = createStateKey<Partial<Record<CacheStoreType, KeyStore>>>("keyStoreInstances");
+interface BackgroundCacheWriteBatch {
+  entries: Map<string, CacheSetItem<unknown>>;
+  flushPromise?: Promise<void>;
+}
+const BACKGROUND_CACHE_WRITE_BATCH_KEY =
+  createStateKey<Partial<Record<CacheStoreType, BackgroundCacheWriteBatch>>>("backgroundCacheWriteBatches");
 const MAX_DEBUG_VALUE_LENGTH = 1000;
 
 export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
@@ -91,6 +97,9 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
   };
 
   const [getKeyStoreInstance, setKeyStoreInstance] = uzeRequestState(KEY_STORE_STATE_KEY);
+  const [getBackgroundCacheWriteBatches, setBackgroundCacheWriteBatches] = uzeRequestState(
+    BACKGROUND_CACHE_WRITE_BATCH_KEY,
+  );
 
   const getKeyStore = async (): Promise<KeyStore> => {
     const existing = getKeyStoreInstance()?.[namespace.type];
@@ -114,12 +123,48 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     return newStore;
   };
 
+  const scheduleBackgroundCacheWrites = (entries: CacheSetItem<unknown>[]) => {
+    if (!entries.length) return;
+
+    let batch = getBackgroundCacheWriteBatches()?.[namespace.type];
+    if (!batch) {
+      batch = { entries: new Map() };
+      setBackgroundCacheWriteBatches((previous) => ({
+        ...previous,
+        [namespace.type]: batch,
+      }));
+    }
+
+    for (const entry of entries) {
+      batch.entries.set(entry.key, entry);
+    }
+
+    if (batch.flushPromise) return;
+
+    const flushPromise = Promise.resolve().then(async () => {
+      const keyStore = await getKeyStore();
+      while (batch.entries.size > 0) {
+        const pendingEntries = Array.from(batch.entries.values());
+        batch.entries.clear();
+        await keyStore.setMany(pendingEntries);
+      }
+    });
+    batch.flushPromise = flushPromise.finally(() => {
+      batch.flushPromise = undefined;
+    });
+    context.waitUntil(batch.flushPromise, "Cache set items");
+  };
+
   const get = async (): Promise<T | undefined | null> => {
     return getItem(undefined);
   };
 
   const set = async (value: T, expiresAt?: number) => {
     return setItem(undefined, value, expiresAt);
+  };
+
+  const setInBackground = (value: T, expiresAt?: number) => {
+    setItemInBackground(undefined, value, expiresAt);
   };
 
   const getItem = async (key?: string): Promise<T | undefined | null> => {
@@ -180,7 +225,6 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
 
   const setItem = async (key: string | undefined, value: T, expiresAt?: number) => {
     const cacheKey = generateCacheKey(key);
-    const keyStore = await getKeyStore();
 
     // Enforce maximum cache lifetime
     const now = Date.now();
@@ -200,6 +244,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
 
     const howFarInFuture = effectiveExpiresAt ? effectiveExpiresAt - now : undefined;
     if (!howFarInFuture || howFarInFuture > 1000 * 10) {
+      const keyStore = await getKeyStore();
       await keyStore.set(cacheKey, cacheItem, effectiveExpiresAt);
 
       debugLog("Write key store", {
@@ -215,6 +260,27 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
         expiresAt: effectiveExpiresAt ? new Date(effectiveExpiresAt).toISOString() : undefined,
         durationMs: Date.now() - now,
       });
+    }
+  };
+
+  const setItemInBackground = (key: string | undefined, value: T, expiresAt?: number) => {
+    const cacheKey = generateCacheKey(key);
+    const now = Date.now();
+    const effectiveExpiresAt = ENFORCE_MAX_CACHE_LIFETIME
+      ? expiresAt
+        ? Math.min(expiresAt, now + MAX_CACHE_LIFETIME)
+        : now + MAX_CACHE_LIFETIME
+      : expiresAt;
+    const cacheItem: CacheItem<T> = { data: value, version: CACHE_ITEM_VERSION, timestamp: now };
+
+    setRequestCache((previous) => ({
+      ...previous,
+      [cacheKey]: Promise.resolve(cacheItem),
+    }));
+
+    const howFarInFuture = effectiveExpiresAt ? effectiveExpiresAt - now : undefined;
+    if (!howFarInFuture || howFarInFuture > 1000 * 10) {
+      scheduleBackgroundCacheWrites([{ key: cacheKey, value: cacheItem, expiresAt: effectiveExpiresAt }]);
     }
   };
 
@@ -325,6 +391,27 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     });
   };
 
+  const setItemsInBackground = (items: CacheSetItem<T>[]) => {
+    if (!items.length) return;
+
+    const now = Date.now();
+    const entries: CacheSetItem<CacheItem<T>>[] = items.map((item) => ({
+      key: generateCacheKey(item.key),
+      value: { data: item.value, version: CACHE_ITEM_VERSION, timestamp: now },
+      expiresAt: item.expiresAt,
+    }));
+
+    setRequestCache((previous) => {
+      const next = { ...previous };
+      for (const entry of entries) {
+        next[entry.key] = Promise.resolve(entry.value);
+      }
+      return next;
+    });
+
+    scheduleBackgroundCacheWrites(entries);
+  };
+
   const clearItems = async (keys: string[]) => {
     if (!keys.length) return;
     const startNow = Date.now();
@@ -346,5 +433,17 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     });
   };
 
-  return { getItem, setItem, clearItem, get, set, getItems, setItems, clearItems } as const;
+  return {
+    getItem,
+    setItem,
+    setItemInBackground,
+    clearItem,
+    get,
+    set,
+    setInBackground,
+    getItems,
+    setItems,
+    setItemsInBackground,
+    clearItems,
+  } as const;
 };

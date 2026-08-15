@@ -71,6 +71,99 @@ describe("cache", () => {
     expect(await store.get("edge:app:settings:v2")).toMatchObject({ data: "enabled" });
   });
 
+  test("supports background cache writes without changing awaited setter semantics", async () => {
+    const values = new Map<string, unknown>();
+    const pendingWrites = new Map<string, () => void>();
+    let resolveBulkWrite!: () => void;
+    const bulkWriteStarted = new Promise<void>((resolve) => {
+      resolveBulkWrite = resolve;
+    });
+    let releaseBulkWrite!: () => void;
+    const bulkWriteReleased = new Promise<void>((resolve) => {
+      releaseBulkWrite = resolve;
+    });
+    const bulkWrites: string[][] = [];
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const store = {
+      get: async (key: string) => values.get(key) ?? null,
+      set: async (key: string, value: unknown) => {
+        await new Promise<void>((resolve) => pendingWrites.set(key, resolve));
+        values.set(key, value);
+      },
+      delete: async (key: string) => {
+        values.delete(key);
+      },
+      getMany: async (keys: string[]) => keys.map((key) => values.get(key) ?? null),
+      setMany: async (entries: { key: string; value: unknown }[]) => {
+        bulkWrites.push(entries.map((entry) => entry.key));
+        resolveBulkWrite();
+        await bulkWriteReleased;
+        for (const entry of entries) {
+          values.set(entry.key, entry.value);
+        }
+      },
+      deleteMany: async () => {},
+    };
+    const namespace = createCacheNamespace<string>({ id: "state", type: "replicated" });
+    const otherNamespace = createCacheNamespace<string>({ id: "other", type: "replicated" });
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
+      cache: {
+        stores: { replicated: async () => store },
+        getKeyPrefix: () => "app",
+        getVersion: () => "v1",
+      },
+    });
+
+    await uze.execute(
+      {
+        request: new Request("https://example.com/"),
+        env: {},
+        waitUntil: (promise) => waitUntilPromises.push(promise),
+        rawContext: {},
+      },
+      async () => {
+        const cache = uzeCacheState(namespace);
+        cache.setItemInBackground("background", "value");
+        cache.setItemsInBackground([
+          { key: "bulk-1", value: "one" },
+          { key: "bulk-2", value: "two" },
+        ]);
+        const otherCache = uzeCacheState(otherNamespace);
+        otherCache.setItemInBackground("background", "other value");
+
+        expect(await cache.getItem("background")).toBe("value");
+        expect(await cache.getItem("bulk-1")).toBe("one");
+        expect(await otherCache.getItem("background")).toBe("other value");
+        expect(waitUntilPromises).toHaveLength(1);
+        expect(values.has("replicated:app:state:background")).toBe(false);
+
+        await bulkWriteStarted;
+        expect(bulkWrites).toEqual([
+          [
+            "replicated:app:state:background",
+            "replicated:app:state:bulk-1",
+            "replicated:app:state:bulk-2",
+            "replicated:app:other:background",
+          ],
+        ]);
+        releaseBulkWrite();
+        await waitUntilPromises[0];
+        expect(values.has("replicated:app:state:background")).toBe(true);
+
+        let awaitedWriteCompleted = false;
+        const awaitedWrite = cache.setItem("awaited", "value").then(() => {
+          awaitedWriteCompleted = true;
+        });
+        await Promise.resolve();
+        expect(awaitedWriteCompleted).toBe(false);
+
+        pendingWrites.get("replicated:app:state:awaited")?.();
+        await awaitedWrite;
+        expect(awaitedWriteCompleted).toBe(true);
+      },
+    );
+  });
+
   test("uses the configured store for each namespace type", async () => {
     const edgeStore = new InMemoryKeyStore();
     const replicatedStore = new InMemoryKeyStore();
