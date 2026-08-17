@@ -2,6 +2,32 @@ import { describe, expect, test } from "bun:test";
 import { UzefulApp, uzeContextInternal, uzeTestContext } from "..";
 
 describe("uzeTestContext()", () => {
+  test("treats callable thenables as promises instead of waitUntil callbacks", async () => {
+    const uze = new UzefulApp<Record<string, never>, Request>();
+    let invoked = false;
+    const callableThenable = Object.assign(
+      () => {
+        throw new Error("waitUntil invoked a callable thenable");
+      },
+      {
+        // biome-ignore lint/suspicious/noThenProperty: This fixture intentionally emulates a callable promise-like RPC proxy.
+        then(resolve: () => void) {
+          invoked = true;
+          resolve();
+        },
+      },
+    );
+
+    await uze.execute(
+      { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
+      async () => {
+        uze.hooks.uzeContext().waitUntil(callableThenable as unknown as Promise<void>);
+      },
+    );
+
+    expect(invoked).toBe(true);
+  });
+
   test("cleanup drains work scheduled by pending waitUntil work", async () => {
     const uze = new UzefulApp<Record<string, never>, Request>();
     let resolveFirstWork!: () => void;

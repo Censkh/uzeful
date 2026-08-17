@@ -110,7 +110,11 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     rawContext,
     waitUntil: (promiseOrFunction, label) => {
-      const promise = typeof promiseOrFunction === "function" ? promiseOrFunction() : promiseOrFunction;
+      const promiseOrThenable =
+        typeof promiseOrFunction === "function" && typeof (promiseOrFunction as { then?: unknown }).then !== "function"
+          ? promiseOrFunction()
+          : promiseOrFunction;
+      const promise = Promise.resolve(promiseOrThenable);
       const id = label ? `${label} (${quickId()})` : quickId();
       const internal = getUzefulInternal(context);
       internal.waitUntilPendingPromises.add(promise);

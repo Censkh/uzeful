@@ -48,7 +48,12 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
   async execute<T>(runOptions: ContextOptions<TEnv, TRequest>, handler: () => Promise<T>): Promise<T> {
     return await runWithContext<T, TEnv, TRequest>(this.withInheritedTestContext(runOptions), async () => {
       this.initializeOptions();
-      return (await runAfterCallbacks((await handler()) as any, undefined)) as T;
+      const result = await handler();
+      if (result instanceof Response) {
+        return (await runAfterCallbacks(result, undefined)) as T;
+      }
+      await runAfterCallbacks(new Response(), undefined);
+      return result;
     });
   }
 
