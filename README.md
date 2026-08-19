@@ -95,16 +95,16 @@ export const uzeDatabase = async () => {
 
 ### After Hooks
 
-You can use the `uzeAfter` hook to run code after the response has been created. This can be useful when you want to add
+Use `uzeBeforeResponse` to modify a response before it is returned. This can be useful when you want to add
 headers to a response, such as CORS.
 
 ```typescript
-import {uzeAfter} from "uzeful";
+import {uzeBeforeResponse} from "uzeful";
 import {createRouter} from "uzeful/router";
 
 const router = createRouter()
   .all("*", async () => {
-    uzeAfter((response) => {
+    uzeBeforeResponse((response) => {
       response.headers.set("Access-Control-Allow-Origin", "*");
     });
   })
