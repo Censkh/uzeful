@@ -76,7 +76,7 @@ describe("validation", () => {
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
     const formData = new FormData();
     formData.append("name", "Ada");
-    formData.append("content.blob", file);
+    formData.append("content.data", file);
     formData.append("content.type", "text/plain");
     formData.append("processingOptions.keepAfterProcessing", "true");
     formData.append("metadata.tag", "one");
@@ -93,7 +93,7 @@ describe("validation", () => {
           z.object({
             name: z.string(),
             content: z.object({
-              blob: z.instanceof(File),
+              data: z.instanceof(File),
               type: z.string(),
             }),
             processingOptions: z.object({
@@ -108,7 +108,7 @@ describe("validation", () => {
     );
 
     expect(result.name).toBe("Ada");
-    expect(result.content.blob.name).toBe("hello.txt");
+    expect(result.content.data.name).toBe("hello.txt");
     expect(result.content.type).toBe("text/plain");
     expect(result.processingOptions.keepAfterProcessing).toBe("true");
     expect(result.metadata.tag).toEqual(["one", "two"]);
