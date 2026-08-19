@@ -174,7 +174,8 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     rawContext,
     waitUntil: (promiseOrFunction, label) => {
-      if (getUzefulInternal(context).waitUntilsClosed) {
+      const waitUntilsClosed = getUzefulInternal(context).waitUntilsClosed;
+      if (waitUntilsClosed && !WAIT_UNTIL_SCOPE_STORAGE.getStore()) {
         throw new Error("Cannot schedule waitUntil after the response has been returned");
       }
       const isWaitUntilFunction =
@@ -189,6 +190,10 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
             return result;
           })
         : Promise.resolve(promiseOrFunction);
+      if (waitUntilsClosed) {
+        addToCurrentUzeWaitUntil(promise);
+        return;
+      }
       trackWaitUntil(context, promise, label);
       waitUntil(promise);
     },

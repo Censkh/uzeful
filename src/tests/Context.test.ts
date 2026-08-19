@@ -71,6 +71,41 @@ describe("uzeTestContext()", () => {
     expect(followUpComplete).toBe(true);
   });
 
+  test("allows waitUntil callbacks to schedule cache work after the response returns", async () => {
+    const uze = new UzefulApp<Record<string, never>, Request>();
+    const scheduledWork: Promise<unknown>[] = [];
+    let releaseBackgroundWork: (() => void) | undefined;
+    let cacheWorkCompleted = false;
+
+    await uze.execute(
+      {
+        request: new Request("https://example.com/"),
+        env: {},
+        waitUntil: (promise) => scheduledWork.push(promise),
+        rawContext: {},
+      },
+      async () => {
+        const context = uze.hooks.uzeContext();
+        context.waitUntil(async () => {
+          await new Promise<void>((resolve) => {
+            releaseBackgroundWork = resolve;
+          });
+          context.waitUntil(
+            Promise.resolve().then(() => {
+              cacheWorkCompleted = true;
+            }),
+          );
+        });
+      },
+    );
+
+    expect(releaseBackgroundWork).toBeDefined();
+    releaseBackgroundWork?.();
+    await Promise.all(scheduledWork);
+
+    expect(cacheWorkCompleted).toBe(true);
+  });
+
   test("test waits for registered work", async () => {
     let workCompleted = false;
     const uze = new UzefulApp<Record<string, never>, Request>();
