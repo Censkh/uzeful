@@ -182,10 +182,11 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
       const promise = isWaitUntilFunction
         ? WAIT_UNTIL_SCOPE_STORAGE.run(new Set(), async () => {
             const pendingPromises = WAIT_UNTIL_SCOPE_STORAGE.getStore()!;
-            await promiseOrFunction();
+            const result = await promiseOrFunction();
             while (pendingPromises.size > 0) {
               await Promise.all([...pendingPromises]);
             }
+            return result;
           })
         : Promise.resolve(promiseOrFunction);
       trackWaitUntil(context, promise, label);
