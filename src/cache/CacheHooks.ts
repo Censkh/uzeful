@@ -1,4 +1,4 @@
-import { uzeContextInternal as uzeContext } from "../Context";
+import { addToCurrentUzeWaitUntil, areUzeWaitUntilsClosed, uzeContextInternal as uzeContext } from "../Context";
 import { createStateKey, uzeRequestState } from "../State";
 import { uzeOptions } from "../UzefulApp";
 import type { CacheSetItem, KeyStore } from "./KeyStore";
@@ -152,7 +152,11 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     batch.flushPromise = flushPromise.finally(() => {
       batch.flushPromise = undefined;
     });
-    context.waitUntil(batch.flushPromise, "Cache set items");
+    if (areUzeWaitUntilsClosed()) {
+      addToCurrentUzeWaitUntil(batch.flushPromise);
+    } else {
+      context.waitUntil(batch.flushPromise, "Cache set items");
+    }
   };
 
   const get = async (): Promise<T | undefined | null> => {

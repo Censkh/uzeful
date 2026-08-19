@@ -32,6 +32,7 @@ export type ContextOptions<TEnv = unknown, TRequest extends BaseRequest = Reques
 };
 
 const CONTEXT_STORAGE = new AsyncLocalStorage<Context>();
+const WAIT_UNTIL_SCOPE_STORAGE = new AsyncLocalStorage<Set<Promise<unknown>>>();
 
 type UzefulInternal = {
   waitUntilErrors: unknown[];
@@ -98,6 +99,23 @@ export const closeUzeWaitUntils = () => {
   getUzefulInternal(uzeContextInternal()).waitUntilsClosed = true;
 };
 
+export const areUzeWaitUntilsClosed = () => {
+  return getUzefulInternal(uzeContextInternal()).waitUntilsClosed;
+};
+
+export const addToCurrentUzeWaitUntil = (promise: Promise<unknown>) => {
+  const pendingPromises = WAIT_UNTIL_SCOPE_STORAGE.getStore();
+  if (!pendingPromises) {
+    return false;
+  }
+  pendingPromises.add(promise);
+  promise.then(
+    () => pendingPromises.delete(promise),
+    () => pendingPromises.delete(promise),
+  );
+  return true;
+};
+
 export const getCurrentUzeContext = () => CONTEXT_STORAGE.getStore();
 
 export const createUzeContextHook =
@@ -159,11 +177,17 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
       if (getUzefulInternal(context).waitUntilsClosed) {
         throw new Error("Cannot schedule waitUntil after the response has been returned");
       }
-      const promiseOrThenable =
-        typeof promiseOrFunction === "function" && typeof (promiseOrFunction as { then?: unknown }).then !== "function"
-          ? promiseOrFunction()
-          : promiseOrFunction;
-      const promise = Promise.resolve(promiseOrThenable);
+      const isWaitUntilFunction =
+        typeof promiseOrFunction === "function" && typeof (promiseOrFunction as { then?: unknown }).then !== "function";
+      const promise = isWaitUntilFunction
+        ? WAIT_UNTIL_SCOPE_STORAGE.run(new Set(), async () => {
+            const pendingPromises = WAIT_UNTIL_SCOPE_STORAGE.getStore()!;
+            await promiseOrFunction();
+            while (pendingPromises.size > 0) {
+              await Promise.all([...pendingPromises]);
+            }
+          })
+        : Promise.resolve(promiseOrFunction);
       trackWaitUntil(context, promise, label);
       waitUntil(promise);
     },
