@@ -1,11 +1,44 @@
 import { uzeContextInternal } from "../Context";
-import { Priority, uzeAfter, uzeRequestId } from "../index";
+import { Priority, uzeBeforeResponse, uzeRequestId } from "../index";
 import type { BaseRequest, Middleware } from "../Types";
 import { logger } from "./Logger";
 
 export * from "./Logger";
 
 export type RequestInfoGetter = (request: BaseRequest) => Record<string, string | number | undefined | null>;
+
+const SENSITIVE_QUERY_PARAMETER_NAMES = new Set([
+  "access_token",
+  "api_key",
+  "apikey",
+  "authorization",
+  "client_secret",
+  "code",
+  "id_token",
+  "jwt",
+  "key",
+  "refresh_token",
+  "session",
+  "session_token",
+  "sig",
+  "signature",
+  "token",
+  "x-api-key",
+]);
+
+export const sanitizeRequestUrl = (requestUrl: string) => {
+  try {
+    const url = new URL(requestUrl);
+    for (const [name] of url.searchParams) {
+      if (SENSITIVE_QUERY_PARAMETER_NAMES.has(name.toLowerCase())) {
+        url.searchParams.set(name, "REDACTED");
+      }
+    }
+    return url.toString();
+  } catch {
+    return requestUrl;
+  }
+};
 
 const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
   // @ts-expect-error
@@ -18,13 +51,16 @@ const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
   );
   return {
     method: request.method.toUpperCase(),
-    url: request.url,
+    url: sanitizeRequestUrl(request.url),
     headers: {
       ...lowercaseHeaders,
       authorization: undefined,
       cookie: undefined,
       "api-key": undefined,
+      "proxy-authorization": undefined,
+      "x-auth-token": undefined,
       "x-api-key": undefined,
+      "x-firebase-token": undefined,
     },
   };
 };
@@ -39,6 +75,7 @@ export const traceMiddleware =
   async () => {
     const requestInfoGetter = options?.requestInfoGetter ?? DEFAULT_REQUEST_INFO_GETTER;
     const { request, startMs } = uzeContextInternal();
+    const requestUrl = sanitizeRequestUrl(request.url);
 
     const calculateRequestInfo = () => {
       const requestInfo: any = requestInfoGetter(request);
@@ -50,9 +87,9 @@ export const traceMiddleware =
       return requestInfo;
     };
 
-    logger().info("App", `Calling ${request.method.toUpperCase()} ${request.url}`, calculateRequestInfo());
+    logger().info("App", `Calling ${request.method.toUpperCase()} ${requestUrl}`, calculateRequestInfo());
 
-    uzeAfter(
+    uzeBeforeResponse(
       (response, error) => {
         const end = Date.now();
         const requestInfo = calculateRequestInfo();
@@ -60,7 +97,7 @@ export const traceMiddleware =
         if (error) {
           logger().error(
             "App",
-            `Failed calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
+            `Failed calling ${request.method.toUpperCase()} ${requestUrl} got status code ${response.status}`,
             {
               ...requestInfo,
               status: response.status,
@@ -70,7 +107,7 @@ export const traceMiddleware =
         } else {
           logger().info(
             "App",
-            `Success calling ${request.method.toUpperCase()} ${request.url} got status code ${response.status}`,
+            `Success calling ${request.method.toUpperCase()} ${requestUrl} got status code ${response.status}`,
             {
               ...requestInfo,
               status: response.status,

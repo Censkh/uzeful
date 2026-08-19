@@ -1,5 +1,5 @@
 import SendableError from "sendable-error";
-import { runAfterCallbacks } from "./After";
+import { runBeforeResponseCallbacks, scheduleAfterWaitUntilCallbacks } from "./After";
 import {
   type Context,
   type ContextOptions,
@@ -50,9 +50,12 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
       this.initializeOptions();
       const result = await handler();
       if (result instanceof Response) {
-        return (await runAfterCallbacks(result, undefined)) as T;
+        const response = await runBeforeResponseCallbacks(result, undefined);
+        scheduleAfterWaitUntilCallbacks(response, undefined);
+        return response as T;
       }
-      await runAfterCallbacks(new Response(), undefined);
+      const response = await runBeforeResponseCallbacks(new Response(), undefined);
+      scheduleAfterWaitUntilCallbacks(response, undefined);
       return result;
     });
   }
@@ -66,11 +69,15 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
         if (!response) {
           throw new Error("No response");
         }
-        return runAfterCallbacks(response, undefined);
+        const processedResponse = await runBeforeResponseCallbacks(response, undefined);
+        scheduleAfterWaitUntilCallbacks(processedResponse, undefined);
+        return processedResponse;
       } catch (error: any) {
         const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
         const resolvedError = error instanceof Response ? (error as any).cause : error;
-        return runAfterCallbacks(errorResponse, resolvedError);
+        const processedResponse = await runBeforeResponseCallbacks(errorResponse, resolvedError);
+        scheduleAfterWaitUntilCallbacks(processedResponse, resolvedError);
+        return processedResponse;
       }
     });
   }

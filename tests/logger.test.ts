@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { colorFromLevel, log, withSink } from "../src/logger";
+import { colorFromLevel, log, sanitizeRequestUrl, withSink } from "../src/logger";
 
 describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
@@ -25,5 +25,15 @@ describe("logger", () => {
     expect(colorFromLevel("warn")("x")).toContain("x");
     expect(colorFromLevel("error")("x")).toContain("x");
     expect(colorFromLevel("debug")("x")).toContain("x");
+  });
+
+  test("redacts sensitive query parameters from request URLs", () => {
+    const url = sanitizeRequestUrl(
+      "https://api.polysnap.app/v1/app-events/subscribe?token=firebase-token&pageIndex=0&API_KEY=api-key",
+    );
+
+    expect(url).toBe("https://api.polysnap.app/v1/app-events/subscribe?token=REDACTED&pageIndex=0&API_KEY=REDACTED");
+    expect(url).not.toContain("firebase-token");
+    expect(url).not.toContain("api-key");
   });
 });

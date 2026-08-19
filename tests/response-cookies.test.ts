@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Priority, UzefulApp, uzeAfter, uzeCookies, uzeResponseModifier } from "../src";
+import { Priority, UzefulApp, uzeBeforeResponse, uzeCookies, uzeResponseModifier } from "../src";
 
 describe("responses, after hooks, and cookies", () => {
   test("runs after hooks by priority and allows response replacement", async () => {
@@ -8,14 +8,14 @@ describe("responses, after hooks, and cookies", () => {
     const response = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
       async () => {
-        uzeAfter(
+        uzeBeforeResponse(
           (current) => {
             seen.push("last");
             expect(current.headers.get("x-after")).toBe("first");
           },
           { priority: Priority.LAST },
         );
-        uzeAfter(
+        uzeBeforeResponse(
           () => {
             seen.push("first");
             return new Response("changed", { headers: { "x-after": "first" } });

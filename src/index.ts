@@ -1,7 +1,7 @@
 import type { Router } from "./router";
 
 export { type BaseErrorCode, ErrorCode, SendableError } from "sendable-error";
-export { Priority, uzeAfter } from "./After";
+export { Priority, uzeAfterWaitUntils, uzeBeforeResponse } from "./After";
 export * from "./BuiltinHooks";
 export {
   type Context,

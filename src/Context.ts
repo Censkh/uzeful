@@ -39,6 +39,11 @@ type UzefulInternal = {
 };
 
 const UZEFUL_INTERNAL = Symbol("uzeful.internal");
+const RAW_WAIT_UNTIL = Symbol("uzeful.raw-wait-until");
+
+type ContextWithRawWaitUntil<TEnv, TRequest extends BaseRequest> = Context<TEnv, TRequest> & {
+  [RAW_WAIT_UNTIL]: (promise: Promise<unknown>) => void;
+};
 
 const getUzefulInternal = <TEnv, TRequest extends BaseRequest>(context: Context<TEnv, TRequest>): UzefulInternal => {
   const internalContext = context as Context<TEnv, TRequest> & {
@@ -48,6 +53,43 @@ const getUzefulInternal = <TEnv, TRequest extends BaseRequest>(context: Context<
     waitUntilErrors: [],
     waitUntilPendingPromises: new Set(),
   });
+};
+
+const trackWaitUntil = <TEnv, TRequest extends BaseRequest>(
+  context: Context<TEnv, TRequest>,
+  promise: Promise<unknown>,
+  label?: string,
+) => {
+  const id = label ? `${label} (${quickId()})` : quickId();
+  const internal = getUzefulInternal(context);
+  internal.waitUntilPendingPromises.add(promise);
+  promise.then(
+    () => internal.waitUntilPendingPromises.delete(promise),
+    (error) => {
+      internal.waitUntilPendingPromises.delete(promise);
+      internal.waitUntilErrors.push(error);
+      logger().error("waitUntil", "Promise failed with error: ", { id }, error);
+    },
+  );
+};
+
+export const waitForUzeWaitUntils = async (excludedPromise?: Promise<unknown>) => {
+  const context = uzeContextInternal();
+  const internal = getUzefulInternal(context);
+
+  while (true) {
+    const pendingPromises = [...internal.waitUntilPendingPromises].filter((promise) => promise !== excludedPromise);
+    if (pendingPromises.length === 0) {
+      return;
+    }
+    await Promise.allSettled(pendingPromises);
+  }
+};
+
+export const uzeScheduleWaitUntil = (promise: Promise<unknown>, label?: string) => {
+  const context = uzeContextInternal<unknown, BaseRequest>();
+  trackWaitUntil(context, promise, label);
+  (context as ContextWithRawWaitUntil<unknown, BaseRequest>)[RAW_WAIT_UNTIL](promise);
 };
 
 export const getCurrentUzeContext = () => CONTEXT_STORAGE.getStore();
@@ -69,10 +111,8 @@ export const uzeTestContext = (): UzeTestContext => {
   }
 
   const drainWaitUntils = async () => {
+    await CONTEXT_STORAGE.run(context, waitForUzeWaitUntils);
     const internal = getUzefulInternal(context);
-    while (internal.waitUntilPendingPromises.size > 0) {
-      await Promise.allSettled(internal.waitUntilPendingPromises);
-    }
     if (internal.waitUntilErrors.length > 0) {
       throw internal.waitUntilErrors[0];
     }
@@ -115,23 +155,14 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
           ? promiseOrFunction()
           : promiseOrFunction;
       const promise = Promise.resolve(promiseOrThenable);
-      const id = label ? `${label} (${quickId()})` : quickId();
-      const internal = getUzefulInternal(context);
-      internal.waitUntilPendingPromises.add(promise);
-      promise.then(
-        () => internal.waitUntilPendingPromises.delete(promise),
-        (error) => {
-          internal.waitUntilPendingPromises.delete(promise);
-          internal.waitUntilErrors.push(error);
-          logger().error("waitUntil", "Promise failed with error: ", { id }, error);
-        },
-      );
+      trackWaitUntil(context, promise, label);
       waitUntil(promise);
     },
     startMs: Date.now(),
     request: request as WithParams<TRequest>,
     state: state ?? {},
   };
+  (context as ContextWithRawWaitUntil<TEnv, TRequest>)[RAW_WAIT_UNTIL] = waitUntil;
   return CONTEXT_STORAGE.run(context as unknown as Context, fn);
 };
 
