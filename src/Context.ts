@@ -36,6 +36,7 @@ const CONTEXT_STORAGE = new AsyncLocalStorage<Context>();
 type UzefulInternal = {
   waitUntilErrors: unknown[];
   waitUntilPendingPromises: Set<Promise<unknown>>;
+  waitUntilsClosed: boolean;
 };
 
 const UZEFUL_INTERNAL = Symbol("uzeful.internal");
@@ -52,6 +53,7 @@ const getUzefulInternal = <TEnv, TRequest extends BaseRequest>(context: Context<
   return (internalContext[UZEFUL_INTERNAL] ??= {
     waitUntilErrors: [],
     waitUntilPendingPromises: new Set(),
+    waitUntilsClosed: false,
   });
 };
 
@@ -90,6 +92,10 @@ export const uzeScheduleWaitUntil = (promise: Promise<unknown>, label?: string) 
   const context = uzeContextInternal<unknown, BaseRequest>();
   trackWaitUntil(context, promise, label);
   (context as ContextWithRawWaitUntil<unknown, BaseRequest>)[RAW_WAIT_UNTIL](promise);
+};
+
+export const closeUzeWaitUntils = () => {
+  getUzefulInternal(uzeContextInternal()).waitUntilsClosed = true;
 };
 
 export const getCurrentUzeContext = () => CONTEXT_STORAGE.getStore();
@@ -150,6 +156,9 @@ export const runWithContext = async <TResult, TEnv, TRequest extends BaseRequest
     ...otherOptions,
     rawContext,
     waitUntil: (promiseOrFunction, label) => {
+      if (getUzefulInternal(context).waitUntilsClosed) {
+        throw new Error("Cannot schedule waitUntil after the response has been returned");
+      }
       const promiseOrThenable =
         typeof promiseOrFunction === "function" && typeof (promiseOrFunction as { then?: unknown }).then !== "function"
           ? promiseOrFunction()

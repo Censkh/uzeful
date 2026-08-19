@@ -3,6 +3,7 @@ import { runBeforeResponseCallbacks, scheduleAfterWaitUntilCallbacks } from "./A
 import {
   type Context,
   type ContextOptions,
+  closeUzeWaitUntils,
   createUzeContextHook,
   getCurrentUzeContext,
   runWithContext,
@@ -52,10 +53,12 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
       if (result instanceof Response) {
         const response = await runBeforeResponseCallbacks(result, undefined);
         scheduleAfterWaitUntilCallbacks(response, undefined);
+        closeUzeWaitUntils();
         return response as T;
       }
       const response = await runBeforeResponseCallbacks(new Response(), undefined);
       scheduleAfterWaitUntilCallbacks(response, undefined);
+      closeUzeWaitUntils();
       return result;
     });
   }
@@ -71,12 +74,14 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
         }
         const processedResponse = await runBeforeResponseCallbacks(response, undefined);
         scheduleAfterWaitUntilCallbacks(processedResponse, undefined);
+        closeUzeWaitUntils();
         return processedResponse;
       } catch (error: any) {
         const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
         const resolvedError = error instanceof Response ? (error as any).cause : error;
         const processedResponse = await runBeforeResponseCallbacks(errorResponse, resolvedError);
         scheduleAfterWaitUntilCallbacks(processedResponse, resolvedError);
+        closeUzeWaitUntils();
         return processedResponse;
       }
     });
