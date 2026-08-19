@@ -92,7 +92,7 @@ export const scheduleAfterWaitUntilCallbacks = (response: Response, error: Error
   }
 
   let callbackPromise!: Promise<void>;
-  callbackPromise = Promise.resolve().then(async () => {
+  callbackPromise = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
     await waitForUzeWaitUntils(callbackPromise);
     for (const priority of [Priority.FIRST, Priority.EARLY, Priority.NORMAL, Priority.LATE, Priority.LAST]) {
       for (const callback of callbacks[priority]) {
