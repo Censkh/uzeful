@@ -32,6 +32,55 @@ export const uzeCurrentUser = async () => {
 };
 ```
 
+## Dependency hook pattern
+
+The usual pattern for a service, model, database, or API dependency is to resolve it lazily and store it in request
+state. Define the state key once at module scope, return the existing value when present, and create or resolve the
+dependency only on the first call in that request.
+
+Reusable backend packages should use `uzeContextInternal<Env>()` so they do not depend on a concrete application
+instance:
+
+```ts
+import { createStateKey, uzeContextInternal, uzeRequestState } from "uzeful";
+
+type ServicesEnv = {
+  database: Database;
+};
+
+const DATABASE_STATE = createStateKey<Database | undefined>("database");
+
+export const uzeDatabase = (): Database => {
+  const [getDatabase, setDatabase] = uzeRequestState(DATABASE_STATE);
+  const existing = getDatabase();
+  if (existing) return existing;
+
+  const database = uzeContextInternal<ServicesEnv>().env.database;
+  setDatabase(database);
+  return database;
+};
+```
+
+This gives every request a stable dependency identity without leaking request-owned instances into global state. The
+`uze` prefix signals that the function must run inside an active Uzeful context.
+
+For asynchronous construction, store the promise before awaiting it so concurrent callers in the same request share
+one initialization:
+
+```ts
+const SERVICE_STATE = createStateKey<Promise<Service> | undefined>("service");
+
+export const uzeService = (): Promise<Service> => {
+  const [getService, setService] = uzeRequestState(SERVICE_STATE);
+  const existing = getService();
+  if (existing) return existing;
+
+  const service = createService();
+  setService(service);
+  return service;
+};
+```
+
 ## Request-scoped state
 
 `uzeRequestState` stores a value for the duration of one request. Define stable state keys at module scope.

@@ -78,6 +78,31 @@ export default {
 };
 ```
 
+### Bun
+
+```typescript
+import { BunUzefulApp } from "uzeful/bun";
+import { createRouter } from "uzeful/router";
+
+type Env = {
+  serviceName: string;
+};
+
+const uze = new BunUzefulApp<Env>();
+const router = createRouter().get("/health", () => {
+  return Response.json({ service: uze.hooks.uzeContext().env.serviceName });
+});
+
+const server = Bun.serve({
+  fetch: uze.fetch(router.fetch, {
+    getEnv: () => ({ serviceName: "api" }),
+  }),
+});
+```
+
+`getEnv` may return a value or promise for each request. Use `waitUntil` or `getRawContext` when the Bun host needs
+custom background-task handling or access to the server object.
+
 ## Usage
 
 ### Making Hooks
@@ -91,6 +116,29 @@ export const uzeDatabase = async () => {
   return env.DB;
 }
 ```
+
+For dependencies used more than once during a request, use a stable module-level state key and resolve the dependency
+once per request:
+
+```typescript
+import { createStateKey, uzeContextInternal, uzeRequestState } from "uzeful";
+
+const DATABASE_STATE = createStateKey<Database | undefined>("database");
+
+export const uzeDatabase = () => {
+  const [getDatabase, setDatabase] = uzeRequestState(DATABASE_STATE);
+  const existing = getDatabase();
+  if (existing) return existing;
+
+  const database = uzeContextInternal<Env>().env.DB;
+  setDatabase(database);
+  return database;
+};
+```
+
+Reusable backend packages should prefer `uzeContextInternal<Env>()` so the hook is not coupled to a specific
+application instance. For asynchronous construction, store the promise before awaiting it to deduplicate concurrent
+initialization within the request.
 
 ### After Hooks
 
