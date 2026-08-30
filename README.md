@@ -9,8 +9,7 @@ Hooks for the backend.
 - logger
 - unified error handling interface
 
-`uze` allows you to access the context of a request with zero hassel in backend environments and provides helpers for
-logging, error handling & managing state
+`uzeful` provides request context in backend environments together with helpers for logging, error handling, and state management.
 
 ```javascript
 // route handler for getting user info
@@ -29,7 +28,7 @@ export default async function getUserInfo() {
 ## Installation
 
 ```bash
-npm install uze
+npm install uzeful
 ```
 
 ## Getting Started
@@ -232,8 +231,10 @@ export default async function getUserInfo() {
 }
 ```
 
-**Note:** all errors are __private__ by default. This means the response body will contain and obfuscated error. To make
+**Note:** all errors are __private__ by default. This means the response body will contain an obfuscated error. To make
 an error public, set the `public` property to `true`.
+
+The maintained guides for context, caching, and runtime adapters live in `website/docs`.
 
 ### Router
 

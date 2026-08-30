@@ -1,6 +1,6 @@
 import qs from "qs";
 import SendableError from "sendable-error";
-import type * as zod from "zod/v4";
+import type * as zod from "zod";
 import { uzeContextInternal } from "../Context";
 import { parseZodError } from "./ValidationUtils";
 

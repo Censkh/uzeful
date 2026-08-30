@@ -78,7 +78,7 @@ describe("validation", () => {
     formData.append("name", "Ada");
     formData.append("content.data", file);
     formData.append("content.type", "text/plain");
-    formData.append("processingOptions.keepAfterProcessing", "true");
+    formData.append("processingOptions.keepContentAfterProcessing", "true");
     formData.append("metadata.tag", "one");
     formData.append("metadata.tag", "two");
 
@@ -97,7 +97,7 @@ describe("validation", () => {
               type: z.string(),
             }),
             processingOptions: z.object({
-              keepAfterProcessing: z.string(),
+              keepContentAfterProcessing: z.string(),
             }),
             metadata: z.object({
               tag: z.array(z.string()),
@@ -110,7 +110,7 @@ describe("validation", () => {
     expect(result.name).toBe("Ada");
     expect(result.content.data.name).toBe("hello.txt");
     expect(result.content.type).toBe("text/plain");
-    expect(result.processingOptions.keepAfterProcessing).toBe("true");
+    expect(result.processingOptions.keepContentAfterProcessing).toBe("true");
     expect(result.metadata.tag).toEqual(["one", "two"]);
   });
 
