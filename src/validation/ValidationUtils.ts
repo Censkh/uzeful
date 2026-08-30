@@ -1,4 +1,4 @@
-import type { ZodError, ZodIssue } from "zod/v4";
+import type { ZodError, ZodIssue } from "zod";
 
 interface ParsedValidationError {
   code: string;
