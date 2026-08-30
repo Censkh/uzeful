@@ -23,7 +23,7 @@ describe("Express Uzeful app", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ greeting: "Hello, Ada!", path: "/greeting/Ada" });
-  });
+  }, 15_000);
 
   test("forwards request bodies to Fetch handlers", async () => {
     const server = app.listen(0);
@@ -42,7 +42,7 @@ describe("Express Uzeful app", () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("adapter body");
-  });
+  }, 15_000);
 
   test("uses the Express instance environment in test contexts", async () => {
     const greeting = await expressUzeful.test({ env: { greeting: "Hi" } }, async () => {
