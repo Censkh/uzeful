@@ -238,6 +238,13 @@ The maintained guides for context, caching, and runtime adapters live in `websit
 
 ### Router
 
+Request tracing omits standard sensitive headers by default. Add application-specific names with
+`traceMiddleware({ sensitiveHeaders: ["x-custom-signature"] })`. Names are matched case-insensitively,
+and additions do not replace the defaults or affect other middleware instances. This option applies
+to the default request info getter; custom `requestInfoGetter` and `extraRequestInfoGetter` callbacks
+are responsible for sanitizing their own output. For custom getters, use
+`sanitizeRequestHeaders(headers, ["x-custom-signature"])`.
+
 `uze` provides a wrapper around `itty-router`'s `AutoRouter` to provide a simple way to define routes.
 
 See the full documentation here: https://itty.dev/itty-router/routers/autorouter

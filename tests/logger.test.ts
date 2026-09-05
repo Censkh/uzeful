@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { colorFromLevel, log, sanitizeRequestHeaders, sanitizeRequestUrl, withSink } from "../src/logger";
+import { BunUzefulApp } from "../src/bun";
+import {
+  colorFromLevel,
+  log,
+  sanitizeRequestHeaders,
+  sanitizeRequestUrl,
+  traceMiddleware,
+  withSink,
+} from "../src/logger";
 
 describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
@@ -28,23 +36,61 @@ describe("logger", () => {
   });
 
   test("redacts sensitive query parameters from request URLs", () => {
-    const url = sanitizeRequestUrl(
-      "https://api.polysnap.app/v1/app-events/subscribe?token=firebase-token&pageIndex=0&API_KEY=api-key",
-    );
+    const url = sanitizeRequestUrl("https://example.com/events?token=secret-token&pageIndex=0&API_KEY=api-key");
 
-    expect(url).toBe("https://api.polysnap.app/v1/app-events/subscribe?token=REDACTED&pageIndex=0&API_KEY=REDACTED");
-    expect(url).not.toContain("firebase-token");
+    expect(url).toBe("https://example.com/events?token=REDACTED&pageIndex=0&API_KEY=REDACTED");
+    expect(url).not.toContain("secret-token");
     expect(url).not.toContain("api-key");
   });
 
-  test("removes authentication, webhook, and database synchronization headers", () => {
-    expect(
-      sanitizeRequestHeaders({
-        authorization: "Bearer secret",
-        "x-calmlens-signature": "webhook-secret",
-        "x-database-sync-key": "database-secret",
-        accept: "application/json",
-      }),
-    ).toEqual({ accept: "application/json" });
+  test("extends default sensitive headers case-insensitively without changing other callers", () => {
+    const headers = {
+      Authorization: "Bearer secret",
+      "X-Custom-Signature": "webhook-secret",
+      accept: "application/json",
+    };
+    expect(sanitizeRequestHeaders(headers, ["x-custom-signature"])).toEqual({ accept: "application/json" });
+    expect(sanitizeRequestHeaders(headers)).toEqual({
+      "X-Custom-Signature": "webhook-secret",
+      accept: "application/json",
+    });
+    expect(headers.Authorization).toBe("Bearer secret");
+  });
+
+  test("omits configured headers from both request and response trace logs", async () => {
+    const messages: string[] = [];
+    const previousVerbose = process.env.VERBOSE;
+    const app = new BunUzefulApp<Record<string, never>>();
+    const trace = traceMiddleware({ sensitiveHeaders: ["X-Custom-Signature"] });
+    const handler = app.fetch(
+      async () => {
+        await trace();
+        return new Response("ok");
+      },
+      { getEnv: () => ({}) },
+    );
+    process.env.VERBOSE = "true";
+    try {
+      await withSink({ out: { info: (message) => messages.push(message) } as Console }, () =>
+        handler(
+          new Request("https://example.com/", {
+            headers: {
+              "x-custom-signature": "private-value",
+              authorization: "Bearer secret",
+              accept: "application/json",
+            },
+          }),
+        ),
+      );
+    } finally {
+      if (previousVerbose === undefined) delete process.env.VERBOSE;
+      else process.env.VERBOSE = previousVerbose;
+    }
+    expect(messages).toHaveLength(2);
+    for (const message of messages) {
+      expect(message).not.toContain("private-value");
+      expect(message).not.toContain("Bearer secret");
+      expect(message).toContain("application/json");
+    }
   });
 });

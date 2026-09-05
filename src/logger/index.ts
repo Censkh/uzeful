@@ -33,9 +33,6 @@ const SENSITIVE_HEADER_NAMES = new Set([
   "proxy-authorization",
   "x-api-key",
   "x-auth-token",
-  "x-calmlens-signature",
-  "x-database-sync-key",
-  "x-firebase-token",
 ]);
 
 export const sanitizeRequestUrl = (requestUrl: string) => {
@@ -52,10 +49,12 @@ export const sanitizeRequestUrl = (requestUrl: string) => {
   }
 };
 
-export const sanitizeRequestHeaders = (headers: Record<string, string>) =>
-  Object.fromEntries(Object.entries(headers).filter(([name]) => !SENSITIVE_HEADER_NAMES.has(name.toLowerCase())));
+export const sanitizeRequestHeaders = (headers: Record<string, string>, sensitiveHeaders: readonly string[] = []) => {
+  const excludedNames = new Set([...SENSITIVE_HEADER_NAMES, ...sensitiveHeaders.map((name) => name.toLowerCase())]);
+  return Object.fromEntries(Object.entries(headers).filter(([name]) => !excludedNames.has(name.toLowerCase())));
+};
 
-const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
+const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest, sensitiveHeaders?: readonly string[]) => {
   // @ts-expect-error
   const lowercaseHeaders = request.headers.entries().reduce(
     (acc: any, [key, value]: any) => {
@@ -67,11 +66,12 @@ const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
   return {
     method: request.method.toUpperCase(),
     url: sanitizeRequestUrl(request.url),
-    headers: sanitizeRequestHeaders(lowercaseHeaders),
+    headers: sanitizeRequestHeaders(lowercaseHeaders, sensitiveHeaders),
   };
 };
 
 export interface TraceMiddlewareOptions {
+  sensitiveHeaders?: readonly string[];
   requestInfoGetter?: RequestInfoGetter;
   extraRequestInfoGetter?: RequestInfoGetter;
 }
@@ -79,7 +79,9 @@ export interface TraceMiddlewareOptions {
 export const traceMiddleware =
   (options?: TraceMiddlewareOptions): Middleware =>
   async () => {
-    const requestInfoGetter = options?.requestInfoGetter ?? DEFAULT_REQUEST_INFO_GETTER;
+    const requestInfoGetter =
+      options?.requestInfoGetter ??
+      ((request: BaseRequest) => DEFAULT_REQUEST_INFO_GETTER(request, options?.sensitiveHeaders));
     const { request, startMs } = uzeContextInternal();
     const requestUrl = sanitizeRequestUrl(request.url);
 
