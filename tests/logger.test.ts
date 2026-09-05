@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { colorFromLevel, log, sanitizeRequestUrl, withSink } from "../src/logger";
+import { colorFromLevel, log, sanitizeRequestHeaders, sanitizeRequestUrl, withSink } from "../src/logger";
 
 describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
@@ -35,5 +35,16 @@ describe("logger", () => {
     expect(url).toBe("https://api.polysnap.app/v1/app-events/subscribe?token=REDACTED&pageIndex=0&API_KEY=REDACTED");
     expect(url).not.toContain("firebase-token");
     expect(url).not.toContain("api-key");
+  });
+
+  test("removes authentication, webhook, and database synchronization headers", () => {
+    expect(
+      sanitizeRequestHeaders({
+        authorization: "Bearer secret",
+        "x-calmlens-signature": "webhook-secret",
+        "x-database-sync-key": "database-secret",
+        accept: "application/json",
+      }),
+    ).toEqual({ accept: "application/json" });
   });
 });

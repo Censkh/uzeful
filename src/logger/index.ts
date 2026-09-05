@@ -26,6 +26,18 @@ const SENSITIVE_QUERY_PARAMETER_NAMES = new Set([
   "x-api-key",
 ]);
 
+const SENSITIVE_HEADER_NAMES = new Set([
+  "api-key",
+  "authorization",
+  "cookie",
+  "proxy-authorization",
+  "x-api-key",
+  "x-auth-token",
+  "x-calmlens-signature",
+  "x-database-sync-key",
+  "x-firebase-token",
+]);
+
 export const sanitizeRequestUrl = (requestUrl: string) => {
   try {
     const url = new URL(requestUrl);
@@ -40,6 +52,9 @@ export const sanitizeRequestUrl = (requestUrl: string) => {
   }
 };
 
+export const sanitizeRequestHeaders = (headers: Record<string, string>) =>
+  Object.fromEntries(Object.entries(headers).filter(([name]) => !SENSITIVE_HEADER_NAMES.has(name.toLowerCase())));
+
 const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
   // @ts-expect-error
   const lowercaseHeaders = request.headers.entries().reduce(
@@ -52,16 +67,7 @@ const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest) => {
   return {
     method: request.method.toUpperCase(),
     url: sanitizeRequestUrl(request.url),
-    headers: {
-      ...lowercaseHeaders,
-      authorization: undefined,
-      cookie: undefined,
-      "api-key": undefined,
-      "proxy-authorization": undefined,
-      "x-auth-token": undefined,
-      "x-api-key": undefined,
-      "x-firebase-token": undefined,
-    },
+    headers: sanitizeRequestHeaders(lowercaseHeaders),
   };
 };
 
