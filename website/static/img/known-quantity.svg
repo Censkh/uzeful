@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 226 60" role="img" aria-labelledby="title">
+  <title id="title">Known Quantity</title>
+  <svg x="0" y="0" width="60" height="60" viewBox="2 2 60 60" aria-hidden="true">
+    <g fill="#f8f9ff">
+      <path d="M42 2h18a2 2 0 0 1 2 2v16c0 7.2-5.8 13-13 13h-8c-6.1 0-10 4.9-10 11v6c0 6.6-5.4 12-12 12H4a2 2 0 0 1-2-2V44c0-8.3 6.7-15 15-15h6c6.6 0 12-5.4 12-12V9c0-3.9 3.1-7 7-7Z"/>
+      <path d="M45 39h15a2 2 0 0 1 2 2v19a2 2 0 0 1-2 2H40a2 2 0 0 1-2-2V46c0-3.9 3.1-7 7-7Z"/>
+    </g>
+  </svg>
+  <svg x="78" y="7.2" width="148" height="51.4" viewBox="5 -75 634 220" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
+    <g fill="#f8f9ff">
+      <path d="M188 0L78 0L78 718L188 718L188 386L492 718L619 718L299 366L627 0L489 0L188 333Z" transform="translate(10.7 0) scale(.1 -.1)"/>
+      <path d="M558 0L180 561L180 0L78 0L78 718L198 718L567 172L567 718L669 718L669 0Z" transform="translate(96.7 0) scale(.1 -.1)"/>
+      <path d="M661.5 93Q661.5 93 609.25 39Q557-15 401-15Q245-15 140.5 93Q36 201 36 360Q36 519 140.5 626Q245 733 401 733Q557 733 661.5 626Q766 519 766 360Q766 201 661.5 93ZM219.5 163Q219.5 163 254.25 123.5Q289 84 401 84Q513 84 582.5 163Q652 242 652 360Q652 478 582.5 556Q513 634 401 634Q289 634 219.5 556Q150 478 150 360Q150 242 219.5 163Z" transform="translate(184.9 0) scale(.1 -.1)"/>
+      <path d="M625 0L473 563L320 0L207 0L20 718L128 718L266 165L417 718L531 718L680 164L818 718L926 718L739 0Z" transform="translate(268.7 0) scale(.1 -.1)"/>
+      <path d="M558 0L180 561L180 0L78 0L78 718L198 718L567 172L567 718L669 718L669 0Z" transform="translate(369.7 0) scale(.1 -.1)"/>
+      <path d="M401-15Q245-15 140.5 93Q36 201 36 360Q36 519 140.5 626Q245 733 401 733Q557 733 661.5 626Q766 519 766 360Q766 253 716 166Q666 79 581 31L701-182L588-182L486-6Q446-15 401-15ZM219.5 163Q219.5 163 254.25 123.5Q289 84 401 84Q513 84 582.5 163Q652 242 652 360Q652 478 582.5 556Q513 634 401 634Q289 634 219.5 556Q150 478 150 360Q150 242 219.5 163Z" transform="translate(2.9 125) scale(.1 -.1)"/>
+      <path d="M631 718L631 258Q631 134 556 59.5Q481-15 353-15Q225-15 150.5 59Q76 133 76 258L76 718L186 718L186 255Q186 176 230 130Q274 84 353 84Q432 84 476.5 130Q521 176 521 255L521 718Z" transform="translate(98.7 125) scale(.1 -.1)"/>
+      <path d="M572 0L507 178L197 178L131 0L20 0L295 718L416 718L689 0ZM353 598L230 267L474 267Z" transform="translate(189.5 125) scale(.1 -.1)"/>
+      <path d="M558 0L180 561L180 0L78 0L78 718L198 718L567 172L567 718L669 718L669 0Z" transform="translate(278.7 125) scale(.1 -.1)"/>
+      <path d="M363 0L253 0L253 619L19 619L19 718L597 718L597 619L363 619Z" transform="translate(376.2 125) scale(.1 -.1)"/>
+      <path d="M188 0L78 0L78 718L188 718Z" transform="translate(457.5 125) scale(.1 -.1)"/>
+      <path d="M363 0L253 0L253 619L19 619L19 718L597 718L597 619L363 619Z" transform="translate(498.1 125) scale(.1 -.1)"/>
+      <path d="M377 269L377 0L266 0L266 269L8 718L128 718L325 372L524 718L636 718Z" transform="translate(573.7 125) scale(.1 -.1)"/>
+    </g>
+  </svg>
+</svg>
