@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+description: Share typed dependencies, request state, and lifecycle hooks without passing context through every function.
 ---
 
 # Context and hooks

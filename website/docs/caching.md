@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+description: Choose cache scopes and storage backends for request-local, edge, and replicated data.
 ---
 
 # Caching

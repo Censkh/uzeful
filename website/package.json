@@ -3,24 +3,27 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "start": "bun ./node_modules/@docusaurus/core/bin/docusaurus.mjs start",
-    "build": "bun ./node_modules/@docusaurus/core/bin/docusaurus.mjs build",
-    "serve": "bun ./node_modules/@docusaurus/core/bin/docusaurus.mjs serve",
-    "clear": "bun ./node_modules/@docusaurus/core/bin/docusaurus.mjs clear",
+    "start": "docusaurus start --host 127.0.0.1 --port 3010 --no-open",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve --host 127.0.0.1 --port 3010 --no-open",
+    "clear": "docusaurus clear",
     "dev": "wrangler dev",
     "deploy": "bun run build && wrangler deploy --env main"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.9.2",
-    "@docusaurus/preset-classic": "^3.9.2",
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@easyops-cn/docusaurus-search-local": "0.55.2",
+    "clsx": "2.1.1",
+    "docusaurus-plugin-copy-page-button": "0.8.3"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.9.2",
-    "@docusaurus/tsconfig": "^3.9.2",
+    "@docusaurus/module-type-aliases": "3.10.2",
+    "@docusaurus/tsconfig": "3.10.2",
     "typescript": "7.0.2",
     "wrangler": "4.112.0"
   }

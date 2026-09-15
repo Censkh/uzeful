@@ -4,3 +4,8 @@ node_modules
 .firebase
 packages/.DS_Store
 dist
+
+website/build/
+website/.docusaurus/
+website/.wrangler/
+output/

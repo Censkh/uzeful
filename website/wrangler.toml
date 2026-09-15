@@ -1,6 +1,5 @@
 name = "uzeful-website"
-compatibility_date = "2026-09-09"
-compatibility_flags = ["new_module_registry"]
+compatibility_date = "2026-09-16"
 workers_dev = false
 
 [assets]
@@ -10,6 +9,4 @@ not_found_handling = "404-page"
 
 [env.main]
 workers_dev = false
-routes = [
-  { pattern = "uzeful.io", custom_domain = true },
-]
+routes = [{ pattern = "uzeful.io", custom_domain = true }]

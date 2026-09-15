@@ -8,13 +8,15 @@
     "build": "tsc -p tsconfig.json",
     "test": "bun test --parallel=4 --pass-with-no-tests",
     "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
-    "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."
+    "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check .",
+    "docs:dev": "cd website && bun run start",
+    "docs:build": "cd website && bun run build"
   },
   "repository": {
     "type": "git",
     "url": "git@github.com:Censkh/uzeful.git"
   },
-  "homepage": "https://github.com/Censkh/uzeful",
+  "homepage": "https://uzeful.io/",
   "exports": {
     ".": {
       "workerd": "./src/index.ts",

@@ -1,9 +1,11 @@
 ---
-sidebar_position: 1
-slug: /getting-started
+id: getting-started
+slug: /
+title: Backend hooks with shared context
+sidebar_label: Getting started
+hide_title: true
+description: Install Uzeful and build a typed backend with request-scoped hooks.
 ---
-
-# Getting started
 
 Uzeful is a small, typed application foundation for backend code. It gives hooks a request context without coupling the code inside those hooks to a specific HTTP runtime.
 
@@ -44,6 +46,6 @@ The handler is run inside an isolated request context. Any hook that calls `uzeC
 
 ## Next steps
 
-- Learn how [context and hooks](/docs/context-and-hooks) work.
-- Add [cache state](/docs/caching) with explicit edge or replicated storage.
-- Run the same handler with a [Cloudflare or Express adapter](/docs/adapters).
+- Learn how [context and hooks](/context-and-hooks) work.
+- Add [cache state](/caching) with explicit edge or replicated storage.
+- Run the same handler with a [Cloudflare or Express adapter](/adapters).
