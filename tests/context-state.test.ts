@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createStateKey, UzefulApp, uzeContextInternal, uzeRequestId, uzeRequestState, uzeSharedState } from "../src";
+import { createStateKey, UzefulApp, uzeContextInternal, uzeMemoryState, uzeRequestId, uzeRequestState } from "../src";
 import { run } from "./helpers";
 
 describe("context and state", () => {
@@ -25,16 +25,16 @@ describe("context and state", () => {
     expect(first.requestId).not.toBe(second.requestId);
   });
 
-  test("shared state persists across runs", async () => {
+  test("memory state persists across runs", async () => {
     const key = createStateKey("shared-counter", () => 0);
 
     const first = await run(() => {
-      const [getValue, setValue] = uzeSharedState(key);
+      const [getValue, setValue] = uzeMemoryState(key);
       return setValue(getValue() + 1);
     });
 
     const second = await run(() => {
-      const [getValue, setValue] = uzeSharedState(key);
+      const [getValue, setValue] = uzeMemoryState(key);
       return setValue(getValue() + 1);
     });
 

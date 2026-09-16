@@ -14,7 +14,7 @@ export {
 } from "./Context";
 export { uzeCookies } from "./Cookies";
 export { uzeResponseModifier } from "./PostProcessResponse";
-export { createStateKey, type StateKey, uzeRequestState, uzeSharedState } from "./State";
+export { createStateKey, type StateKey, uzeMemoryState, uzeRequestState } from "./State";
 export type { CookieStore, Middleware, Route } from "./Types";
 export { type ContextType, UzefulApp, type UzefulAppOptions } from "./UzefulApp";
 

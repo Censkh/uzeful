@@ -11,10 +11,10 @@ export const createStateKey = <T>(id: string, defaultValueGetter?: () => T): Sta
 });
 
 const STATE_KEY_PREFIX = "@state:";
-const SHARED_STATE_KEY_PREFIX = "@shared-state:";
+const MEMORY_STATE_KEY_PREFIX = "@memory-state:";
 
-// Global shared state store
-const SHARED_STATE_STORE = new Map<string, any>();
+// Isolate-local memory state store
+const MEMORY_STATE_STORE = new Map<string, any>();
 
 type StateGetter<T> = () => T;
 type StateSetter<T> = (valueOrUpdater: T | ((current: T) => T)) => T;
@@ -37,22 +37,22 @@ export const uzeRequestState = <T>(key: StateKey<T>): [StateGetter<T>, StateSett
   ];
 };
 
-export const uzeSharedState = <T>(key: StateKey<T>): [StateGetter<T>, StateSetter<T>] => {
-  const resolvedKey = `${SHARED_STATE_KEY_PREFIX}${key.id}`;
+export const uzeMemoryState = <T>(key: StateKey<T>): [StateGetter<T>, StateSetter<T>] => {
+  const resolvedKey = `${MEMORY_STATE_KEY_PREFIX}${key.id}`;
 
   // Initialize with default value if not exists
-  if (!SHARED_STATE_STORE.has(resolvedKey) && key.defaultValueGetter) {
-    SHARED_STATE_STORE.set(resolvedKey, key.defaultValueGetter());
+  if (!MEMORY_STATE_STORE.has(resolvedKey) && key.defaultValueGetter) {
+    MEMORY_STATE_STORE.set(resolvedKey, key.defaultValueGetter());
   }
 
   return [
-    () => SHARED_STATE_STORE.get(resolvedKey),
+    () => MEMORY_STATE_STORE.get(resolvedKey),
     (valueOrUpdater) => {
-      const currentValue = SHARED_STATE_STORE.get(resolvedKey);
+      const currentValue = MEMORY_STATE_STORE.get(resolvedKey);
       const newValue =
         typeof valueOrUpdater === "function" ? (valueOrUpdater as (current: T) => T)(currentValue) : valueOrUpdater;
 
-      SHARED_STATE_STORE.set(resolvedKey, newValue);
+      MEMORY_STATE_STORE.set(resolvedKey, newValue);
       return newValue;
     },
   ];

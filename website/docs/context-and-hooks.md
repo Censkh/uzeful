@@ -186,5 +186,5 @@ Application code should use its exported typed `uzeContext`. A package that cann
 
 - **“Cannot use context outside of a context block”:** move the hook call into a handler or `app.test`. Export hook functions at module scope, but call them inside a context.
 - **Repeated initialization:** create the state key once and store an in-flight promise before awaiting it.
-- **State shared between users:** use `uzeRequestState` for request-owned values. `uzeSharedState` is backed by a process-local global map and is shared across requests; it is not distributed storage.
+- **State shared between users:** use `uzeRequestState` for request-owned values. `uzeMemoryState` is backed by a process-local global map and is shared across requests; it is not distributed storage.
 - **Unexpected request access errors in tests or jobs:** these contexts have no request. Supply a real request through `fetch`, or keep that hook focused on `env` and state.
