@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
-import MobileSidebar from "@theme-original/Navbar/MobileSidebar";
 import { useNavbarMobileSidebar } from "@docusaurus/theme-common/internal";
+import MobileSidebar from "@theme-original/Navbar/MobileSidebar";
+import React, { useEffect } from "react";
 
 export default function AccessibleMobileSidebar(props) {
   const { shown, toggle } = useNavbarMobileSidebar();
@@ -8,8 +8,10 @@ export default function AccessibleMobileSidebar(props) {
     if (!shown) return undefined;
     const sidebar = document.querySelector(".navbar-sidebar");
     const trigger = document.querySelector(".navbar__toggle");
-    const controls = () => Array.from(sidebar.querySelectorAll('a[href], button, input, [tabindex="0"]'))
-      .filter((element) => !element.closest("[inert]") && element.getBoundingClientRect().width > 0);
+    const controls = () =>
+      Array.from(sidebar.querySelectorAll('a[href], button, input, [tabindex="0"]')).filter(
+        (element) => !element.closest("[inert]") && element.getBoundingClientRect().width > 0,
+      );
     sidebar.setAttribute("role", "dialog");
     sidebar.setAttribute("aria-modal", "true");
     sidebar.setAttribute("aria-label", "Navigation");
@@ -24,9 +26,11 @@ export default function AccessibleMobileSidebar(props) {
         const first = items[0];
         const last = items.at(-1);
         if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault(); last?.focus();
+          event.preventDefault();
+          last?.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault(); first?.focus();
+          event.preventDefault();
+          first?.focus();
         }
       }
     };

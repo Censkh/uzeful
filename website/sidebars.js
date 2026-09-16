@@ -1,8 +1,3 @@
 module.exports = {
-  "docs": [
-    "getting-started",
-    "context-and-hooks",
-    "caching",
-    "adapters"
-  ]
+  docs: ["getting-started", "context-and-hooks", "caching", "adapters"],
 };

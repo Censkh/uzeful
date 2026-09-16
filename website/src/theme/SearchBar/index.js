@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
 import SearchBar from "@theme-original/SearchBar";
+import React, { useEffect, useRef } from "react";
 
 export default function AccessibleSearchBar(props) {
   const root = useRef(null);
@@ -20,9 +20,18 @@ export default function AccessibleSearchBar(props) {
       });
     };
     const observer = new MutationObserver(update);
-    observer.observe(root.current, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-owns", "aria-expanded"] });
+    observer.observe(root.current, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-owns", "aria-expanded"],
+    });
     update();
     return () => observer.disconnect();
   }, []);
-  return <div ref={root}><SearchBar {...props} /></div>;
+  return (
+    <div ref={root}>
+      <SearchBar {...props} />
+    </div>
+  );
 }

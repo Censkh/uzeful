@@ -4,7 +4,7 @@ tags: [find, magnifier, magnifying glass, search, look, seek, query, browse]
 version: "1.0"
 unicode: "eb1c"
 -->
-<svg
+<svg role="img" aria-label="Search"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"

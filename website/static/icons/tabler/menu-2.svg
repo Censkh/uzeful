@@ -4,7 +4,7 @@ category: System
 version: "1.11"
 unicode: "ec42"
 -->
-<svg
+<svg role="img" aria-label="Menu 2"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"

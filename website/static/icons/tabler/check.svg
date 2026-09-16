@@ -4,7 +4,7 @@ category: System
 version: "1.0"
 unicode: "ea5e"
 -->
-<svg
+<svg role="img" aria-label="Check"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
