@@ -110,7 +110,7 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
       if (value === "false") {
         return false;
       }
-      if (Number.isFinite(Number(value))) {
+      if (value !== "" && Number.isFinite(Number(value))) {
         return Number(value);
       }
       return defaultDecoder(value, charset, key);

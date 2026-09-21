@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
-import { uzeValidatedBody, uzeValidatedRequest } from "../src/validation";
+import { uzeValidatedBody, uzeValidatedQuery, uzeValidatedRequest } from "../src/validation";
 import { parseZodError } from "../src/validation/ValidationUtils";
 import { run } from "./helpers";
 
@@ -30,6 +30,15 @@ describe("validation", () => {
       body: { name: "Ada" },
       headers: expect.objectContaining({ "x-token": "secret" }),
     });
+  });
+
+  test("preserves empty query values as strings", async () => {
+    const result = await run(
+      () => uzeValidatedQuery(z.object({ query: z.string() })),
+      new Request("https://example.com/users?query="),
+    );
+
+    expect(result).toEqual({ query: "" });
   });
 
   test("wraps zod errors as public sendable validation errors", async () => {
