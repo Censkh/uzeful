@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { SendableError } from "../src";
 import { BunUzefulApp } from "../src/bun";
 import {
   colorFromLevel,
@@ -8,6 +9,7 @@ import {
   traceMiddleware,
   withSink,
 } from "../src/logger";
+import { RouteNotFoundError } from "../src/router";
 
 describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
@@ -92,5 +94,67 @@ describe("logger", () => {
       expect(message).not.toContain("Bearer secret");
       expect(message).toContain("application/json");
     }
+  });
+
+  test("logs an expected 404 as a finished request without an error stack", async () => {
+    const info: string[] = [];
+    const errors: string[] = [];
+    const previousVerbose = process.env.VERBOSE;
+    const app = new BunUzefulApp<Record<string, never>>();
+    const handler = app.fetch(
+      async () => {
+        await traceMiddleware()();
+        throw new RouteNotFoundError();
+      },
+      { getEnv: () => ({}) },
+    );
+
+    process.env.VERBOSE = "true";
+    try {
+      const response = await withSink(
+        { out: { info: (message) => info.push(message), error: (message) => errors.push(message) } as Console },
+        () => handler(new Request("https://example.com/robots.txt")),
+      );
+      expect(response.status).toBe(404);
+    } finally {
+      if (previousVerbose === undefined) delete process.env.VERBOSE;
+      else process.env.VERBOSE = previousVerbose;
+    }
+
+    expect(info).toHaveLength(2);
+    expect(info[0]).toContain("Calling GET https://example.com/robots.txt");
+    expect(info[1]).toContain("Finished calling GET https://example.com/robots.txt got status code 404");
+    expect(info[1]).toContain('"status": 404');
+    expect(info[1]).not.toContain('"headers"');
+    expect(errors).toHaveLength(0);
+  });
+
+  test("keeps a resource 404 in error logs", async () => {
+    const info: string[] = [];
+    const errors: string[] = [];
+    const previousVerbose = process.env.VERBOSE;
+    const app = new BunUzefulApp<Record<string, never>>();
+    const handler = app.fetch(
+      async () => {
+        await traceMiddleware()();
+        throw new SendableError({ status: 404, message: "Project not found", public: true });
+      },
+      { getEnv: () => ({}) },
+    );
+
+    process.env.VERBOSE = "true";
+    try {
+      await withSink(
+        { out: { info: (message) => info.push(message), error: (message) => errors.push(message) } as Console },
+        () => handler(new Request("https://example.com/v1/projects/missing")),
+      );
+    } finally {
+      if (previousVerbose === undefined) delete process.env.VERBOSE;
+      else process.env.VERBOSE = previousVerbose;
+    }
+
+    expect(info).toHaveLength(1);
+    expect(errors[0]).toContain("Failed calling GET");
+    expect(errors[1]).toContain("Caused by: Error: Project not found");
   });
 });

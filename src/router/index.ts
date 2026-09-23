@@ -2,6 +2,8 @@ import { AutoRouter, type AutoRouterType, type IRequest } from "itty-router";
 import { uzeContextInternal } from "../Context";
 import type { Route } from "../Types";
 
+export { RouteNotFoundError } from "./RouteNotFoundError";
+
 export interface RouterOptions {
   base?: string;
 }

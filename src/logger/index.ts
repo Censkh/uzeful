@@ -1,5 +1,6 @@
 import { uzeContextInternal } from "../Context";
 import { Priority, uzeBeforeResponse, uzeRequestId } from "../index";
+import { RouteNotFoundError } from "../router/RouteNotFoundError";
 import type { BaseRequest, Middleware } from "../Types";
 import { logger } from "./Logger";
 
@@ -102,7 +103,13 @@ export const traceMiddleware =
         const end = Date.now();
         const requestInfo = calculateRequestInfo();
         requestInfo.durationMs = end - startMs;
-        if (error) {
+        if (error instanceof RouteNotFoundError) {
+          delete requestInfo.headers;
+          logger().info("App", `Finished calling ${request.method.toUpperCase()} ${requestUrl} got status code 404`, {
+            ...requestInfo,
+            status: 404,
+          });
+        } else if (error) {
           logger().error(
             "App",
             `Failed calling ${request.method.toUpperCase()} ${requestUrl} got status code ${response.status}`,
