@@ -49,7 +49,15 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
   async execute<T>(runOptions: ContextOptions<TEnv, TRequest>, handler: () => Promise<T>): Promise<T> {
     return await runWithContext<T, TEnv, TRequest>(this.withInheritedTestContext(runOptions), async () => {
       this.initializeOptions();
-      const result = await handler();
+      let result: T;
+      try {
+        result = await handler();
+      } catch (error: any) {
+        // Cleanup registered by the handler (e.g. request database clients) must still run.
+        scheduleAfterWaitUntilCallbacks(new Response(null, { status: 500 }), error);
+        closeUzeWaitUntils();
+        throw error;
+      }
       if (result instanceof Response) {
         const response = await runBeforeResponseCallbacks(result, undefined);
         scheduleAfterWaitUntilCallbacks(response, undefined);

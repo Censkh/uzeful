@@ -43,6 +43,33 @@ describe("response lifecycle hooks", () => {
     expect(completed).toEqual(["first", "after-response"]);
   });
 
+  test("runs after-waitUntil cleanup when an execute handler throws", async () => {
+    const uze = new UzefulApp<Record<string, never>, Request>();
+    const waited: Promise<unknown>[] = [];
+    const cleanedUp: (Error | undefined)[] = [];
+    const failure = new Error("handler failed");
+
+    await expect(
+      uze.execute(
+        {
+          request: undefined as any,
+          env: {},
+          waitUntil: (promise) => waited.push(promise),
+          rawContext: {},
+        },
+        async () => {
+          uzeAfterWaitUntils((_response, error) => {
+            cleanedUp.push(error);
+          });
+          throw failure;
+        },
+      ),
+    ).rejects.toBe(failure);
+
+    await Promise.allSettled(waited);
+    expect(cleanedUp).toEqual([failure]);
+  });
+
   test("rejects waitUntil work queued after the response returns", async () => {
     const uze = new UzefulApp<Record<string, never>, Request>();
     const waited: Promise<unknown>[] = [];
