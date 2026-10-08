@@ -1,5 +1,4 @@
 import { translate } from "@docusaurus/Translate";
-import React from "react";
 // Tabler Icons v3.46.0 — MIT; see static/icons/tabler/LICENSE.
 export default function Icon(props) {
   return (

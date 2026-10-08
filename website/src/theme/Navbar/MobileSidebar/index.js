@@ -1,6 +1,6 @@
 import { useNavbarMobileSidebar } from "@docusaurus/theme-common/internal";
 import MobileSidebar from "@theme-original/Navbar/MobileSidebar";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 export default function AccessibleMobileSidebar(props) {
   const { shown, toggle } = useNavbarMobileSidebar();

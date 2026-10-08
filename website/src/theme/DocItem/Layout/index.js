@@ -2,7 +2,7 @@ import { useDoc } from "@docusaurus/plugin-content-docs/client";
 import CodeBlock from "@theme/CodeBlock";
 import IconArrowDown from "@theme/Icon/ArrowDown";
 import DocItemLayout from "@theme-original/DocItem/Layout";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 export default function DocItemLayoutWrapper(props) {
   const { metadata } = useDoc();

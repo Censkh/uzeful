@@ -1,4 +1,3 @@
-import React from "react";
 // Tabler Icons — MIT; see static/icons/tabler/LICENSE.
 export default function IconArrowDown(props) {
   return (

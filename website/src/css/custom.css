@@ -99,12 +99,14 @@ html[data-theme="light"] .dropdown__menu {
   font-weight: 600;
 }
 .theme-code-block pre {
-  background: #ffffff !important;
   border-radius: 0;
   line-height: 1.7;
 }
 .theme-code-block pre code {
   padding: 0.5rem 0;
+}
+.context-preview pre code {
+  padding: 0;
 }
 mark,
 [class*="hitTitle"] mark,
@@ -136,6 +138,14 @@ html {
 .doc-toolbar [data-copy-page-button-trigger] {
   margin-bottom: 0;
 }
+/* Outranks the plugin's [data-theme="light"] button styles. */
+html[data-theme] [data-copy-page-button-trigger] {
+  color: var(--brand-text);
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
 .doc-toolbar [data-copy-page-button-container] {
   flex-shrink: 0;
   margin-left: auto;
@@ -157,6 +167,7 @@ h3 {
   letter-spacing: -0.025em;
 }
 html:root :focus-visible {
+  /* biome-ignore lint/complexity/noImportantStyles: one focus-ring shape for every element, whatever radius its own rules set. */
   border-radius: 8px !important;
   outline: 3px solid var(--brand-secondary);
   outline-offset: 3px;
@@ -178,6 +189,10 @@ html:root .menu__link:focus-visible {
   line-height: 1.1;
   letter-spacing: -0.025em;
   margin-bottom: 1.5rem;
+}
+.developer-credit span {
+  display: inline-block;
+  margin-top: 0.5rem;
 }
 .landing-intro h1 span {
   color: var(--ifm-color-primary);
@@ -273,10 +288,6 @@ html:root .menu__link:focus-visible {
   height: 16px;
   flex-shrink: 0;
 }
-.developer-credit span {
-  display: inline-block;
-  margin-top: 0.5rem;
-}
 .known-quantity {
   display: inline-flex;
   flex-shrink: 0;
@@ -310,9 +321,6 @@ html:root .menu__link:focus-visible {
 svg[data-tabler-icon] {
   fill: none;
 }
-.landing-actions .button img {
-  vertical-align: -0.2em;
-}
 
 html[data-theme="light"] {
   --ifm-menu-link-sublist-icon-filter: none;
@@ -334,8 +342,9 @@ html[data-theme="light"] {
   width: 28px;
   height: 28px;
 }
-.menu {
-  padding: 1.5rem 0.875rem !important;
+/* :root outranks the sidebar's CSS-module padding, which loads after this file. */
+html:root .menu {
+  padding: 1.5rem 0.875rem;
   font-size: 0.875rem;
 }
 .menu__list-item + .menu__list-item {
@@ -358,13 +367,6 @@ html[data-theme="light"] {
 .breadcrumbs__item--active .breadcrumbs__link {
   background: transparent;
   color: #000000;
-}
-[data-copy-page-button-trigger] {
-  color: var(--brand-text) !important;
-  background: var(--ifm-background-surface-color) !important;
-  border: 1px solid var(--brand-border) !important;
-  border-radius: 8px !important;
-  font-size: 0.875rem !important;
 }
 .markdown h1 {
   font-size: clamp(2.25rem, 4vw, 3rem);
@@ -473,6 +475,7 @@ html[data-theme="light"] {
 }
 @media (min-width: 997px) {
   main .container {
+    /* biome-ignore lint/complexity/noImportantStyles: overrides Infima's !important padding utilities on the doc container. */
     padding: 2.5rem 3rem !important;
     max-width: 1320px;
   }
@@ -485,6 +488,7 @@ html[data-theme="light"] {
     padding-inline: 1rem;
   }
   main .container {
+    /* biome-ignore lint/complexity/noImportantStyles: overrides Infima's !important padding utilities on the doc container. */
     padding-top: 1.5rem !important;
   }
   .doc-toolbar {
@@ -576,17 +580,14 @@ html:root kbd {
   background: transparent;
   box-shadow: none;
 }
-/* Override the syntax renderer’s inline background for the hero example. */
 .context-preview pre {
+  /* biome-ignore lint/complexity/noImportantStyles: only !important beats the syntax renderer's inline background on the hero example. */
   background: transparent !important;
   font-size: 0.875rem;
   white-space: pre-wrap;
   padding: 0;
   border-radius: 0;
   margin: 0;
-}
-.context-preview pre code {
-  padding: 0;
 }
 .landing-actions .button {
   border-radius: 6px;
@@ -633,4 +634,7 @@ html:root .theme-back-to-top-button:hover {
 }
 html:root .theme-back-to-top-button::after {
   background-color: var(--ifm-background-color);
+}
+.landing-actions .button img {
+  vertical-align: -0.2em;
 }

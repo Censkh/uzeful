@@ -1,5 +1,5 @@
 import SearchBar from "@theme-original/SearchBar";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export default function AccessibleSearchBar(props) {
   const root = useRef(null);
