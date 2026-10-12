@@ -222,22 +222,51 @@ describe("cache", () => {
     expect(await store.get("fresh")).toBe("value");
   });
 
-  test("KVKeyStore serializes values and expiration", async () => {
-    const calls: any[] = [];
+  test("KVKeyStore round-trips JSON and keeps short expirations within KV's minimum TTL", async () => {
+    spyOn(Date, "now").mockReturnValue(1_000_000);
+    // Holds what KV would store and enforces its documented minimum expiration of 60 seconds.
+    const entries = new Map<string, { value: string; expiresInSeconds?: number }>();
     const kv = {
-      get: mock(async () => ({ ok: true })),
-      put: mock(async (...args: any[]) => calls.push(args)),
-      delete: mock(async (...args: any[]) => calls.push(["delete", ...args])),
+      get: async (key: string, type: "json") => {
+        expect(type).toBe("json");
+        const entry = entries.get(key);
+        return entry ? JSON.parse(entry.value) : null;
+      },
+      put: async (key: string, value: string, options?: { expiration?: number; expirationTtl?: number }) => {
+        const expiresInSeconds =
+          options?.expirationTtl ??
+          (options?.expiration === undefined ? undefined : options.expiration - Date.now() / 1000);
+        if (expiresInSeconds !== undefined && expiresInSeconds < 60) {
+          throw new Error("KV PUT failed: 400 Invalid expiration");
+        }
+        entries.set(key, { value, expiresInSeconds });
+      },
+      delete: async (key: string) => {
+        entries.delete(key);
+      },
     };
-    const store = new KVKeyStore(kv as any);
+    const store = new KVKeyStore(kv as unknown as ConstructorParameters<typeof KVKeyStore>[0]);
 
-    expect(await store.get("key")).toEqual({ ok: true });
-    await store.set("key", { value: 1 }, 2_000);
-    await store.delete("key");
+    await store.set("soon", { value: 1 }, Date.now() + 30_000);
+    await store.set("later", { value: 2 }, Date.now() + 120_000);
+    await store.set("forever", { value: 3 });
+    await store.setMany([{ key: "bulk", value: { value: 4 }, expiresAt: Date.now() + 15_000 }]);
 
-    expect(kv.get).toHaveBeenCalledWith("key", "json");
-    expect(calls[0]).toEqual(["key", JSON.stringify({ value: 1 }), { expiration: 2 }]);
-    expect(calls[1]).toEqual(["delete", "key"]);
+    expect(await store.getMany(["soon", "later", "forever", "bulk", "missing"])).toEqual([
+      { value: 1 },
+      { value: 2 },
+      { value: 3 },
+      { value: 4 },
+      null,
+    ]);
+    expect(Object.fromEntries([...entries].map(([key, entry]) => [key, entry.expiresInSeconds]))).toEqual({
+      soon: 60,
+      later: 120,
+      forever: undefined,
+      bulk: 60,
+    });
+    await store.delete("soon");
+    expect(await store.get("soon")).toBeNull();
   });
 
   test("UpstashKeyStore maps expirations to redis TTLs and pipelines bulk writes", async () => {

@@ -1,6 +1,16 @@
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { KeyStore } from "./KeyStore";
 
+/** Cloudflare KV rejects expirations less than 60 seconds away. */
+export const KV_MIN_TTL_SECONDS = 60;
+
+const putOptions = (expiresAt?: number) =>
+  expiresAt
+    ? {
+        expirationTtl: Math.max(KV_MIN_TTL_SECONDS, Math.ceil((expiresAt - Date.now()) / 1000)),
+      }
+    : undefined;
+
 export class KVKeyStore implements KeyStore {
   constructor(private readonly kv: KVNamespace) {}
 
@@ -11,13 +21,7 @@ export class KVKeyStore implements KeyStore {
   }
 
   async set<T>(key: string, value: T, expiresAt?: number): Promise<void> {
-    if (expiresAt) {
-      await this.kv.put(key, JSON.stringify(value), {
-        expiration: Math.floor(expiresAt / 1000),
-      });
-    } else {
-      await this.kv.put(key, JSON.stringify(value));
-    }
+    await this.kv.put(key, JSON.stringify(value), putOptions(expiresAt));
   }
 
   async delete(key: string): Promise<void> {
@@ -36,11 +40,7 @@ export class KVKeyStore implements KeyStore {
   async setMany<T>(entries: { key: string; value: T; expiresAt?: number }[]): Promise<void> {
     if (!entries.length) return;
     await Promise.all(
-      entries.map(({ key, value, expiresAt }) =>
-        expiresAt
-          ? this.kv.put(key, JSON.stringify(value), { expiration: Math.floor(expiresAt / 1000) })
-          : this.kv.put(key, JSON.stringify(value)),
-      ),
+      entries.map(({ key, value, expiresAt }) => this.kv.put(key, JSON.stringify(value), putOptions(expiresAt))),
     );
   }
 
