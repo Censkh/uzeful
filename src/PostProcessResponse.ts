@@ -21,7 +21,11 @@ export const postProcessResponse = async (response: Response) => {
     return response;
   }
 
-  const modifiedResponse = response.clone() as Response;
+  // A copy with mutable headers (a fetched or cached response's are immutable) that takes over the
+  // body. Not `clone()`: that tees the body and leaves one branch unread, and workerd's tee stops
+  // pulling a streamed body once the unread branch's queue is full, so a body produced on demand
+  // stalls after its first chunk and the runtime cancels the request as hung.
+  const modifiedResponse = new Response(response.body, response);
 
   for (const modifier of modifiers) {
     await modifier(modifiedResponse);
