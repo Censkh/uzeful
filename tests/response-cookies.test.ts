@@ -53,6 +53,27 @@ describe("responses, after hooks, and cookies", () => {
     expect(redirect.headers.get("x-modified")).toBeNull();
   });
 
+  test("delivers cookies set during the request on a redirect", async () => {
+    const redirect = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
+      { request: new Request("https://example.com/"), env: {}, waitUntil: () => {}, rawContext: {} },
+      async () => {
+        uzeCookies().set("session", "refreshed", { path: "/", httpOnly: true });
+        uzeCookies().delete("stale");
+        uzeResponseModifier((response) => response.headers.set("x-modified", "yes"));
+        return Response.redirect("https://example.com/next", 307);
+      },
+    );
+
+    expect(redirect.status).toBe(307);
+    expect(redirect.headers.get("location")).toBe("https://example.com/next");
+    const cookies = redirect.headers.getSetCookie();
+    expect(cookies.some((cookie) => cookie.startsWith("session=refreshed;"))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith("stale=;") && cookie.includes("Max-Age=-1"))).toBe(
+      true,
+    );
+    expect(redirect.headers.get("x-modified")).toBeNull();
+  });
+
   test("reads, sets, and deletes cookies through Set-Cookie modifiers", async () => {
     const response = await new UzefulApp<Record<string, unknown>, Request>().dispatch(
       {

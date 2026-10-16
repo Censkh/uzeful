@@ -73,9 +73,13 @@ export const uzeCookies = (): CookieStore => {
         cookieParts.push(`SameSite=${options.sameSite}`);
       }
 
-      uzeResponseModifier((response) => {
-        response.headers.append("Set-Cookie", cookieParts.join("; "));
-      });
+      // A request that ends in a redirect still has to deliver the cookies it set.
+      uzeResponseModifier(
+        (response) => {
+          response.headers.append("Set-Cookie", cookieParts.join("; "));
+        },
+        { redirects: true },
+      );
 
       // Remove any existing cookies with this name
       const newCookies = cookies.filter((cookie) => cookie.name !== name);

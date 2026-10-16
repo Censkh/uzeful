@@ -2,12 +2,28 @@ import { createStateKey, uzeRequestState } from "./State";
 
 type ResponseModifier = (response: Response) => void | Promise<void>;
 
-const RESPONSE_MODIFIERS = createStateKey<ResponseModifier[]>("responseModifiers", () => []);
+export interface ResponseModifierOptions {
+  /**
+   * Also run for redirect (3xx) responses, which modifiers skip by default. Cookies set during a
+   * request use this, since a redirect must still carry its Set-Cookie headers.
+   */
+  redirects?: boolean;
+}
+
+interface RegisteredResponseModifier {
+  modifier: ResponseModifier;
+  redirects: boolean;
+}
+
+const RESPONSE_MODIFIERS = createStateKey<RegisteredResponseModifier[]>(
+  "responseModifiers",
+  () => [],
+);
 
 export const postProcessResponse = async (response: Response) => {
   const [getModifiers] = uzeRequestState(RESPONSE_MODIFIERS);
-  const modifiers = getModifiers();
-  if (!modifiers || modifiers.length === 0) {
+  const registered = getModifiers();
+  if (!registered || registered.length === 0) {
     return response;
   }
 
@@ -16,8 +32,10 @@ export const postProcessResponse = async (response: Response) => {
     return response;
   }
 
-  // also don't modify responses that are redirects
-  if (response.status >= 300 && response.status < 400) {
+  // Redirects only receive the modifiers that asked for them (cookies).
+  const isRedirect = response.status >= 300 && response.status < 400;
+  const modifiers = registered.filter((entry) => !isRedirect || entry.redirects);
+  if (modifiers.length === 0) {
     return response;
   }
 
@@ -27,16 +45,16 @@ export const postProcessResponse = async (response: Response) => {
   // stalls after its first chunk and the runtime cancels the request as hung.
   const modifiedResponse = new Response(response.body, response);
 
-  for (const modifier of modifiers) {
+  for (const { modifier } of modifiers) {
     await modifier(modifiedResponse);
   }
 
   return modifiedResponse;
 };
 
-export const uzeResponseModifier = (modifier: ResponseModifier) => {
+export const uzeResponseModifier = (modifier: ResponseModifier, options?: ResponseModifierOptions) => {
   const [, setModifiers] = uzeRequestState(RESPONSE_MODIFIERS);
   setModifiers((prev) => {
-    return [...prev, modifier];
+    return [...prev, { modifier, redirects: options?.redirects === true }];
   });
 };
