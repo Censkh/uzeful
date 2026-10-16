@@ -68,9 +68,7 @@ describe("responses, after hooks, and cookies", () => {
     expect(redirect.headers.get("location")).toBe("https://example.com/next");
     const cookies = redirect.headers.getSetCookie();
     expect(cookies.some((cookie) => cookie.startsWith("session=refreshed;"))).toBe(true);
-    expect(cookies.some((cookie) => cookie.startsWith("stale=;") && cookie.includes("Max-Age=-1"))).toBe(
-      true,
-    );
+    expect(cookies.some((cookie) => cookie.startsWith("stale=;") && cookie.includes("Max-Age=-1"))).toBe(true);
     expect(redirect.headers.get("x-modified")).toBeNull();
   });
 

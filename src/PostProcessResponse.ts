@@ -15,10 +15,7 @@ interface RegisteredResponseModifier {
   redirects: boolean;
 }
 
-const RESPONSE_MODIFIERS = createStateKey<RegisteredResponseModifier[]>(
-  "responseModifiers",
-  () => [],
-);
+const RESPONSE_MODIFIERS = createStateKey<RegisteredResponseModifier[]>("responseModifiers", () => []);
 
 export const postProcessResponse = async (response: Response) => {
   const [getModifiers] = uzeRequestState(RESPONSE_MODIFIERS);
