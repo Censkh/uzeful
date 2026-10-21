@@ -41,6 +41,25 @@ describe("validation", () => {
     expect(result).toEqual({ query: "" });
   });
 
+  test("preserves numeric, boolean and comma-containing search text while coercing typed query fields", async () => {
+    for (const search of ["00123", "false", "true", "1,2", "a+b & c"]) {
+      const query = new URLSearchParams({ search, page: "2", recursive: "false", ids: "1,2" });
+      const result = await run(
+        () =>
+          uzeValidatedQuery(
+            z.object({
+              search: z.string(),
+              page: z.number().int(),
+              recursive: z.boolean(),
+              ids: z.array(z.number()),
+            }),
+          ),
+        new Request(`https://example.com/?${query}`),
+      );
+      expect(result).toEqual({ search, page: 2, recursive: false, ids: [1, 2] });
+    }
+  });
+
   test("wraps zod errors as public sendable validation errors", async () => {
     const error = await run(async () => {
       try {

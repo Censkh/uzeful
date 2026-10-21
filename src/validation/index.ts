@@ -101,22 +101,39 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
   const { request } = uzeContextInternal();
   const search = new URL(request.url).search.split("?")[1] || "";
 
-  const parsedParams = qs.parse(search, {
-    comma: true,
-    decoder: (value, defaultDecoder, charset, key) => {
-      if (value === "true") {
-        return true;
+  const parsedParams = qs.parse(search);
+  // Convert transport strings only where the schema requires another type. Search text such as
+  // "00123", "false" and "a,b" must retain its exact value.
+  for (let pass = 0; pass < 2; pass++) {
+    const result = await schema.safeParseAsync(parsedParams);
+    if (result.success) return result.data;
+    let changed = false;
+    const coerceIssues = (issues: readonly any[]) => {
+      for (const issue of issues) {
+        if (issue.code === "invalid_union") {
+          for (const errors of issue.errors) coerceIssues(errors);
+          continue;
+        }
+        if (issue.code !== "invalid_type" || !issue.path.length) continue;
+        let parent: any = parsedParams;
+        for (const key of issue.path.slice(0, -1)) parent = parent?.[key];
+        if (!parent) continue;
+        const key = issue.path.at(-1);
+        const value = parent[key];
+        if (typeof value !== "string") continue;
+        if (issue.expected === "number" && value.trim() && Number.isFinite(Number(value))) {
+          parent[key] = Number(value);
+        } else if (issue.expected === "boolean" && (value === "true" || value === "false")) {
+          parent[key] = value === "true";
+        } else if (issue.expected === "array") {
+          parent[key] = value.split(",");
+        } else continue;
+        changed = true;
       }
-      if (value === "false") {
-        return false;
-      }
-      if (value !== "" && Number.isFinite(Number(value))) {
-        return Number(value);
-      }
-      return defaultDecoder(value, charset, key);
-    },
-  });
-
+    };
+    coerceIssues(result.error.issues);
+    if (!changed) break;
+  }
   return uzeValidated(parsedParams, schema);
 };
 
