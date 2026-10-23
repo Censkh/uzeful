@@ -76,7 +76,7 @@ const trackWaitUntil = <TEnv, TRequest extends BaseRequest>(
   );
 };
 
-export const waitForUzeWaitUntils = async (excludedPromise?: Promise<unknown>) => {
+export const waitForWaitUntils = async (excludedPromise?: Promise<unknown>) => {
   const context = uzeContextInternal();
   const internal = getUzefulInternal(context);
 
@@ -135,7 +135,7 @@ export const uzeTestContext = (): UzeTestContext => {
   }
 
   const drainWaitUntils = async () => {
-    await CONTEXT_STORAGE.run(context, waitForUzeWaitUntils);
+    await CONTEXT_STORAGE.run(context, waitForWaitUntils);
     const internal = getUzefulInternal(context);
     if (internal.waitUntilErrors.length > 0) {
       throw internal.waitUntilErrors[0];

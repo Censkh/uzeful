@@ -1,5 +1,5 @@
 import SendableError from "sendable-error";
-import { uzeScheduleWaitUntil, waitForUzeWaitUntils } from "./Context";
+import { uzeScheduleWaitUntil, waitForWaitUntils } from "./Context";
 import { logger } from "./logger";
 import { postProcessResponse } from "./PostProcessResponse";
 import { createStateKey, uzeRequestState } from "./State";
@@ -93,7 +93,7 @@ export const scheduleAfterWaitUntilCallbacks = (response: Response, error: Error
 
   let callbackPromise!: Promise<void>;
   callbackPromise = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
-    await waitForUzeWaitUntils(callbackPromise);
+    await waitForWaitUntils(callbackPromise);
     for (const priority of [Priority.FIRST, Priority.EARLY, Priority.NORMAL, Priority.LATE, Priority.LAST]) {
       for (const callback of callbacks[priority]) {
         await callback(response, error);
