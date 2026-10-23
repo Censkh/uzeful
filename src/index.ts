@@ -11,6 +11,7 @@ export {
   type UzeTestContext,
   uzeContextInternal,
   uzeTestContext,
+  waitForWaitUntils,
 } from "./Context";
 export { uzeCookies } from "./Cookies";
 export { uzeResponseModifier } from "./PostProcessResponse";
