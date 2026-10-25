@@ -498,19 +498,19 @@ html:root .menu {
 
 /* Keep compact labels readable, including dependency-provided UI. */
 html:root
-:is(
-  small,
-  sub,
-  sup,
-  kbd,
-  .breadcrumbs__link,
-  .theme-last-updated,
-  [class*="searchResultItemPath"],
-  [class*="hitPath"],
-  [class*="itemDescription"],
-  [class*="hitFooter"],
-  [class*="searchClearButton"]
-) {
+  :is(
+    small,
+    sub,
+    sup,
+    kbd,
+    .breadcrumbs__link,
+    .theme-last-updated,
+    [class*="searchResultItemPath"],
+    [class*="hitPath"],
+    [class*="itemDescription"],
+    [class*="hitFooter"],
+    [class*="searchClearButton"]
+  ) {
   font-size: 0.875rem;
 }
 

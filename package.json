@@ -87,7 +87,7 @@
     "cookie": "^2.0.1",
     "itty-router": "^5.0.24",
     "kleur": "^4.1.5",
-    "qs": "^6.16.0",
+    "qs": "^6.16.1",
     "sendable-error": "^0.11.4"
   },
   "peerDependencies": {
@@ -95,15 +95,15 @@
     "express": "^5.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
-    "@types/node": "^26.6.1",
+    "@biomejs/biome": "^2.6.3",
+    "@types/node": "^26.6.5",
     "@types/express": "^5.0.6",
     "@types/qs": "^6.15.1",
-    "@upstash/redis": "^1.38.4",
+    "@upstash/redis": "^1.39.0",
     "commander": "^15.0.0",
-    "express": "^5.2.1",
+    "express": "^5.3.0",
     "ts-morph": "^28.0.0",
     "typescript": "7.0.2",
-    "zod": "~4.6.5"
+    "zod": "~4.6.7"
   }
 }
