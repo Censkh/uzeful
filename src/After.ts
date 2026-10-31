@@ -1,5 +1,5 @@
-import SendableError from "sendable-error";
 import { uzeScheduleWaitUntil, waitForWaitUntils } from "./Context";
+import { toErrorResponse } from "./ErrorResponse";
 import { logger } from "./logger";
 import { postProcessResponse } from "./PostProcessResponse";
 import { createStateKey, uzeRequestState } from "./State";
@@ -77,7 +77,7 @@ export const runBeforeResponseCallbacks = async (response: Response, error: Erro
         }
       } catch (error: any) {
         logger().error("afterCallback", "Error in afterCallback", {}, error);
-        return await postProcessResponse(SendableError.of(error).toResponse());
+        return await postProcessResponse(toErrorResponse(error));
       }
     }
   }

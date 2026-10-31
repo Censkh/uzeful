@@ -14,6 +14,7 @@ export {
   waitForWaitUntils,
 } from "./Context";
 export { uzeCookies } from "./Cookies";
+export { toErrorResponse } from "./ErrorResponse";
 export { uzeResponseModifier } from "./PostProcessResponse";
 export { createStateKey, type StateKey, uzeMemoryState, uzeRequestState } from "./State";
 export type { CookieStore, Middleware, Route } from "./Types";

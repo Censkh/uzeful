@@ -2,7 +2,9 @@ import qs from "qs";
 import SendableError from "sendable-error";
 import type * as zod from "zod";
 import { uzeContextInternal } from "../Context";
-import { parseZodError } from "./ValidationUtils";
+import { parseZodError, VALIDATION_ERROR_CODES } from "./ValidationUtils";
+
+export { VALIDATION_ERROR_CODES, type ValidationErrorCode } from "./ValidationUtils";
 
 type MultipartFormValue = string | Blob;
 
@@ -17,7 +19,7 @@ const expectsObjectBody = (schema: zod.ZodType) => getZodSchemaType(schema) === 
 const throwUnsupportedBodyContentType = (contentType: string | undefined) => {
   throw new SendableError({
     message: `Unsupported request body content type${contentType ? ` '${contentType}'` : ""}. Expected application/json or multipart/form-data.`,
-    code: "validation/unsupported-content-type",
+    code: VALIDATION_ERROR_CODES.UNSUPPORTED_CONTENT_TYPE,
     details: { contentType },
     status: 415,
     public: true,

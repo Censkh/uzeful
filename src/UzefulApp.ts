@@ -1,4 +1,3 @@
-import SendableError from "sendable-error";
 import { runBeforeResponseCallbacks, scheduleAfterWaitUntilCallbacks } from "./After";
 import {
   type Context,
@@ -11,6 +10,7 @@ import {
 } from "./Context";
 import type { CacheStoreType } from "./cache/CacheHooks";
 import type { KeyStore } from "./cache/KeyStore";
+import { toErrorResponse } from "./ErrorResponse";
 import { createStateKey, uzeRequestState } from "./State";
 import type { BaseRequest, UzeTestOptions } from "./Types";
 
@@ -85,7 +85,7 @@ export class UzefulApp<TEnv, TRequest extends BaseRequest = Request> {
         closeUzeWaitUntils();
         return processedResponse;
       } catch (error: any) {
-        const errorResponse = error instanceof Response ? error : SendableError.of(error).toResponse();
+        const errorResponse = error instanceof Response ? error : toErrorResponse(error);
         const resolvedError = error instanceof Response ? (error as any).cause : error;
         const processedResponse = await runBeforeResponseCallbacks(errorResponse, resolvedError);
         scheduleAfterWaitUntilCallbacks(processedResponse, resolvedError);

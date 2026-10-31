@@ -175,6 +175,31 @@ describe("validation", () => {
     ]);
   });
 
+  test("maps zod issue codes to uzeful's own validation codes", () => {
+    const result = z
+      .strictObject({
+        name: z.string().min(2),
+        count: z.number().max(3),
+        kind: z.union([z.literal("a"), z.literal("b")]),
+        email: z.email(),
+        even: z.number().refine((value) => value % 2 === 0),
+      })
+      .safeParse({ name: "x", count: 4, kind: "c", email: "nope", even: 3, extra: true });
+    if (result.success) throw new Error("expected validation failure");
+
+    const codes = Object.fromEntries(
+      parseZodError(result.error).details.issues.map((issue) => [issue.path, issue.code]),
+    );
+    expect(codes).toEqual({
+      name: "validation/too-small",
+      count: "validation/too-big",
+      kind: "validation/invalid-value",
+      email: "validation/invalid-format",
+      even: "validation/invalid-value",
+      "": "validation/unknown-field",
+    });
+  });
+
   test("parses zod issues into public-safe details", () => {
     const result = z.object({ count: z.number() }).safeParse({ count: "bad" });
     if (result.success) throw new Error("expected validation failure");

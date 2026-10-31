@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { SendableError, uzeContextInternal } from "../src";
+import { SendableError, uzeContextInternal, uzeRequestId } from "../src";
 import { BunUzefulApp } from "../src/bun";
 
 describe("Bun Uzeful app", () => {
@@ -48,5 +48,26 @@ describe("Bun Uzeful app", () => {
 
     expect(response.status).toBe(418);
     expect(await response.json()).toMatchObject({ code: "bun/test-error", message: "Bun adapter error" });
+  });
+
+  test("identifies an error response by the request ID instead of a stack trace ID", async () => {
+    const app = new BunUzefulApp<Record<string, never>>();
+    let requestId: string | undefined;
+    const fetchHandler = app.fetch(
+      async () => {
+        requestId = uzeRequestId();
+        throw new SendableError({ code: "bun/test-error", status: 400, public: true });
+      },
+      { getEnv: () => ({}) },
+    );
+
+    const body = await (await fetchHandler(new Request("http://localhost/"))).json();
+
+    expect(body).toEqual({
+      code: "bun/test-error",
+      message: expect.any(String),
+      requestId: requestId!,
+      details: {},
+    });
   });
 });
