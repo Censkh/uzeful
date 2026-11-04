@@ -106,6 +106,7 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
   const parsedParams = qs.parse(search);
   // Convert transport strings only where the schema requires another type. Search text such as
   // "00123", "false" and "a,b" must retain its exact value.
+  const coerced: { parent: any; key: PropertyKey; path: string; original: string }[] = [];
   for (let pass = 0; pass < 2; pass++) {
     const result = await schema.safeParseAsync(parsedParams);
     if (result.success) return result.data;
@@ -130,11 +131,28 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
         } else if (issue.expected === "array") {
           parent[key] = value.split(",");
         } else continue;
+        coerced.push({ parent, key, path: issue.path.join("."), original: value });
         changed = true;
       }
     };
     coerceIssues(result.error.issues);
     if (!changed) break;
+  }
+  // A conversion the schema still refuses at the same field didn't help: a string the schema
+  // parses itself, such as JSON, would be reported as the converted value. Report the value sent.
+  const result = await schema.safeParseAsync(parsedParams);
+  if (!result.success) {
+    const refused = new Set<string>();
+    const collect = (issues: readonly any[]) => {
+      for (const issue of issues) {
+        if (issue.code === "invalid_union") for (const errors of issue.errors) collect(errors);
+        else refused.add(issue.path.join("."));
+      }
+    };
+    collect(result.error.issues);
+    for (const { parent, key, path, original } of coerced.reverse()) {
+      if (refused.has(path)) parent[key] = original;
+    }
   }
   return uzeValidated(parsedParams, schema);
 };

@@ -60,6 +60,31 @@ describe("validation", () => {
     }
   });
 
+  test("reports a JSON query value the schema refuses as sent, not as a converted list", async () => {
+    // The string is the field's own type: its parsed JSON is what the schema refuses.
+    const items = z
+      .string()
+      .transform((value) => JSON.parse(value))
+      .pipe(z.array(z.object({ id: z.string() })));
+    const schema = z.object({ items, ids: z.array(z.number()) });
+    const sent = { items: '{"author":"a,b"}', ids: "1,2" };
+    const error = await run(
+      async () => {
+        try {
+          await uzeValidatedQuery(schema);
+        } catch (caught) {
+          return caught as any;
+        }
+      },
+      new Request(`https://example.com/?${new URLSearchParams(sent)}`),
+    );
+
+    const body = await error.toResponse().json();
+    const unconverted = parseZodError(schema.safeParse({ items: sent.items, ids: [1, 2] }).error!);
+    expect(body.code).toBe(unconverted.code);
+    expect(body.details).toEqual(unconverted.details);
+  });
+
   test("wraps zod errors as public sendable validation errors", async () => {
     const error = await run(async () => {
       try {
