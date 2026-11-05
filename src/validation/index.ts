@@ -111,17 +111,19 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
     const result = await schema.safeParseAsync(parsedParams);
     if (result.success) return result.data;
     let changed = false;
-    const coerceIssues = (issues: readonly any[]) => {
+    // A union's branch issues have paths relative to the union.
+    const coerceIssues = (issues: readonly any[], prefix: readonly PropertyKey[]) => {
       for (const issue of issues) {
+        const path = [...prefix, ...issue.path];
         if (issue.code === "invalid_union") {
-          for (const errors of issue.errors) coerceIssues(errors);
+          for (const errors of issue.errors) coerceIssues(errors, path);
           continue;
         }
-        if (issue.code !== "invalid_type" || !issue.path.length) continue;
+        if (issue.code !== "invalid_type" || !path.length) continue;
         let parent: any = parsedParams;
-        for (const key of issue.path.slice(0, -1)) parent = parent?.[key];
+        for (const key of path.slice(0, -1)) parent = parent?.[key];
         if (!parent) continue;
-        const key = issue.path.at(-1);
+        const key = path.at(-1)!;
         const value = parent[key];
         if (typeof value !== "string") continue;
         if (issue.expected === "number" && value.trim() && Number.isFinite(Number(value))) {
@@ -131,25 +133,28 @@ export const uzeValidatedQuery = async <T extends zod.ZodType>(schema: T): Promi
         } else if (issue.expected === "array") {
           parent[key] = value.split(",");
         } else continue;
-        coerced.push({ parent, key, path: issue.path.join("."), original: value });
+        coerced.push({ parent, key, path: path.join("."), original: value });
         changed = true;
       }
     };
-    coerceIssues(result.error.issues);
+    coerceIssues(result.error.issues, []);
     if (!changed) break;
   }
-  // A conversion the schema still refuses at the same field didn't help: a string the schema
-  // parses itself, such as JSON, would be reported as the converted value. Report the value sent.
+  // A conversion the schema still refuses as the wrong type at the same field didn't help: a string
+  // the schema parses itself, such as JSON, would be reported as the converted value, so report the
+  // value sent. A converted value the field refuses for another reason, such as a number out of
+  // range, is the right type and keeps its conversion, so the error names the actual problem.
   const result = await schema.safeParseAsync(parsedParams);
   if (!result.success) {
     const refused = new Set<string>();
-    const collect = (issues: readonly any[]) => {
+    const collect = (issues: readonly any[], prefix: readonly PropertyKey[]) => {
       for (const issue of issues) {
-        if (issue.code === "invalid_union") for (const errors of issue.errors) collect(errors);
-        else refused.add(issue.path.join("."));
+        const path = [...prefix, ...issue.path];
+        if (issue.code === "invalid_union") for (const errors of issue.errors) collect(errors, path);
+        else if (issue.code === "invalid_type") refused.add(path.join("."));
       }
     };
-    collect(result.error.issues);
+    collect(result.error.issues, []);
     for (const { parent, key, path, original } of coerced.reverse()) {
       if (refused.has(path)) parent[key] = original;
     }

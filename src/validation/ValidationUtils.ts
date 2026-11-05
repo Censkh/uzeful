@@ -32,18 +32,50 @@ interface ParsedValidationError {
   message: string;
 }
 
-const parseZodIssue = (issue: ZodIssue) => {
-  return {
-    path: issue.path.join("."),
-    message: issue.message,
-    // Unions, custom refinements, literals and everything else reject a value the field can't take.
-    code: ISSUE_CODES[issue.code] ?? VALIDATION_ERROR_CODES.INVALID_VALUE,
-  };
-};
+type ParsedIssue = ParsedValidationError["details"]["issues"][number];
+
+const parseZodIssue = (issue: ZodIssue, path: readonly PropertyKey[]): ParsedIssue => ({
+  path: path.join("."),
+  message: issue.message,
+  // Unions, custom refinements, literals and everything else reject a value the field can't take.
+  code: ISSUE_CODES[issue.code] ?? VALIDATION_ERROR_CODES.INVALID_VALUE,
+});
+
+interface FlatIssue {
+  issue: ZodIssue;
+  path: readonly PropertyKey[];
+}
+
+/**
+ * The issues behind a failed union are those of the option the value came closest to: the one whose
+ * deepest issue is furthest inside the value, then the one with the fewest issues. An object missing
+ * one field of an option is reported as that missing field, not as "Invalid input" on the whole
+ * union. A value no option gets further into than the union itself, such as a number for a union of
+ * literals, keeps the union's own issue. Option issues are relative to the union, so they are
+ * prefixed with its path.
+ */
+const flattenIssues = (issues: readonly ZodIssue[], prefix: readonly PropertyKey[]): FlatIssue[] =>
+  issues.flatMap((issue) => {
+    const path = [...prefix, ...issue.path];
+    if (issue.code !== "invalid_union") return [{ issue, path }];
+    let closest: FlatIssue[] = [{ issue, path }];
+    let closestDepth = path.length;
+    for (const option of issue.errors) {
+      const flattened = flattenIssues(option, path);
+      const optionDepth = Math.max(...flattened.map((flat) => flat.path.length));
+      if (
+        optionDepth > closestDepth ||
+        (optionDepth === closestDepth && closest[0]?.issue !== issue && flattened.length < closest.length)
+      ) {
+        closest = flattened;
+        closestDepth = optionDepth;
+      }
+    }
+    return closest;
+  });
 
 export const parseZodError = (error: ZodError): ParsedValidationError => {
-  const mainError = error;
-  const parsedIssues = mainError.issues.map(parseZodIssue);
+  const parsedIssues = flattenIssues(error.issues, []).map(({ issue, path }) => parseZodIssue(issue, path));
 
   return {
     code: parsedIssues[0].code,

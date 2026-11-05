@@ -85,6 +85,40 @@ describe("validation", () => {
     expect(body.details).toEqual(unconverted.details);
   });
 
+  test("reports an out-of-range numeric query value as out of range", async () => {
+    const schema = z.object({ pageSize: z.number().int().min(1).max(100).default(20) });
+    const codeFor = async (pageSize: string) => {
+      const error = await run(
+        async () => {
+          try {
+            await uzeValidatedQuery(schema);
+          } catch (caught) {
+            return caught as any;
+          }
+        },
+        new Request(`https://example.com/?pageSize=${pageSize}`),
+      );
+      const body = await error.toResponse().json();
+      return [body.code, body.details.path];
+    };
+
+    expect(await codeFor("101")).toEqual(["validation/too-big", "pageSize"]);
+    expect(await codeFor("0")).toEqual(["validation/too-small", "pageSize"]);
+    expect(await codeFor("lots")).toEqual(["validation/invalid-type", "pageSize"]);
+  });
+
+  test("coerces query fields inside a union option", async () => {
+    const schema = z.object({
+      range: z.union([z.object({ from: z.number(), to: z.number() }), z.object({ last: z.number() })]),
+    });
+    const result = await run(
+      () => uzeValidatedQuery(schema),
+      new Request("https://example.com/?range[from]=1&range[to]=5"),
+    );
+
+    expect(result).toEqual({ range: { from: 1, to: 5 } });
+  });
+
   test("wraps zod errors as public sendable validation errors", async () => {
     const error = await run(async () => {
       try {
@@ -223,6 +257,38 @@ describe("validation", () => {
       even: "validation/invalid-value",
       "": "validation/unknown-field",
     });
+  });
+
+  test("reports the field missing from the union option a body came closest to", () => {
+    const content = z.union([
+      z.object({ plainText: z.string(), type: z.string() }),
+      z.object({ base64: z.string(), type: z.string() }),
+    ]);
+    const schema = z
+      .union([z.object({ content }), z.object({ part: z.object({ plainText: z.string() }) })])
+      .and(z.object({ name: z.string() }));
+    const result = schema.safeParse({ name: "a", content: { plainText: "hello" } });
+    if (result.success) throw new Error("expected validation failure");
+
+    const parsed = parseZodError(result.error);
+    expect(parsed.code).toBe("validation/invalid-type");
+    expect(parsed.details.path).toBe("content.type");
+    expect(parsed.details.issues.map((issue) => issue.path)).toEqual(["content.type"]);
+  });
+
+  test("reports a discriminated union's missing discriminator at its field", () => {
+    const schema = z.object({
+      item: z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("a") }),
+        z.object({ kind: z.literal("b"), size: z.number() }),
+      ]),
+    });
+    const missing = schema.safeParse({ item: {} });
+    const incomplete = schema.safeParse({ item: { kind: "b" } });
+    if (missing.success || incomplete.success) throw new Error("expected validation failure");
+
+    expect(parseZodError(missing.error).details.path).toBe("item.kind");
+    expect(parseZodError(incomplete.error).details.path).toBe("item.size");
   });
 
   test("parses zod issues into public-safe details", () => {
