@@ -2,20 +2,28 @@ import type { ZodError, ZodIssue } from "zod";
 
 /**
  * The codes a validation failure can have. They are uzeful's own, so a zod upgrade that renames or
- * adds issue codes cannot change what an API returns.
+ * adds issue codes cannot change what an API returns. Every failed validation has the code
+ * `INVALID_REQUEST`; each of its `details.issues` has one of the issue codes.
  */
 export const VALIDATION_ERROR_CODES = {
+  INVALID_REQUEST: "validation/invalid-request",
   INVALID_TYPE: "validation/invalid-type",
   TOO_SMALL: "validation/too-small",
   TOO_BIG: "validation/too-big",
   INVALID_FORMAT: "validation/invalid-format",
   INVALID_VALUE: "validation/invalid-value",
   UNKNOWN_FIELD: "validation/unknown-field",
-  UNSUPPORTED_CONTENT_TYPE: "validation/unsupported-content-type",
 } as const;
 export type ValidationErrorCode = (typeof VALIDATION_ERROR_CODES)[keyof typeof VALIDATION_ERROR_CODES];
+/** The code of one validation issue: every validation code but `INVALID_REQUEST`. */
+export type ValidationIssueCode = Exclude<ValidationErrorCode, typeof VALIDATION_ERROR_CODES.INVALID_REQUEST>;
 
-const ISSUE_CODES: Partial<Record<ZodIssue["code"], ValidationErrorCode>> = {
+/** Request errors that aren't about the request's values. */
+export const REQUEST_ERROR_CODES = {
+  UNSUPPORTED_CONTENT_TYPE: "request/unsupported-content-type",
+} as const;
+
+const ISSUE_CODES: Partial<Record<ZodIssue["code"], ValidationIssueCode>> = {
   invalid_type: VALIDATION_ERROR_CODES.INVALID_TYPE,
   too_small: VALIDATION_ERROR_CODES.TOO_SMALL,
   too_big: VALIDATION_ERROR_CODES.TOO_BIG,
@@ -24,10 +32,9 @@ const ISSUE_CODES: Partial<Record<ZodIssue["code"], ValidationErrorCode>> = {
 };
 
 interface ParsedValidationError {
-  code: ValidationErrorCode;
+  code: typeof VALIDATION_ERROR_CODES.INVALID_REQUEST;
   details: {
-    path: string;
-    issues: { path: string; message: string; code: ValidationErrorCode }[];
+    issues: { path: string; message: string; code: ValidationIssueCode }[];
   };
   message: string;
 }
@@ -77,12 +84,14 @@ const flattenIssues = (issues: readonly ZodIssue[], prefix: readonly PropertyKey
 export const parseZodError = (error: ZodError): ParsedValidationError => {
   const parsedIssues = flattenIssues(error.issues, []).map(({ issue, path }) => parseZodIssue(issue, path));
 
+  // One code for every failed validation, so a request with several problems doesn't take its code
+  // from whichever issue zod reported first; each issue keeps its own code.
   return {
-    code: parsedIssues[0].code,
-    message: parsedIssues[0].message,
-    details: {
-      path: parsedIssues[0].path,
-      issues: parsedIssues,
-    },
+    code: VALIDATION_ERROR_CODES.INVALID_REQUEST,
+    message:
+      parsedIssues.length === 1
+        ? parsedIssues[0].message
+        : `The request has ${parsedIssues.length} problems; details.issues lists each.`,
+    details: { issues: parsedIssues },
   };
 };

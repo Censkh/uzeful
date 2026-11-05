@@ -99,12 +99,12 @@ describe("validation", () => {
         new Request(`https://example.com/?pageSize=${pageSize}`),
       );
       const body = await error.toResponse().json();
-      return [body.code, body.details.path];
+      return [body.code, body.details.issues.map((issue: any) => [issue.code, issue.path])];
     };
 
-    expect(await codeFor("101")).toEqual(["validation/too-big", "pageSize"]);
-    expect(await codeFor("0")).toEqual(["validation/too-small", "pageSize"]);
-    expect(await codeFor("lots")).toEqual(["validation/invalid-type", "pageSize"]);
+    expect(await codeFor("101")).toEqual(["validation/invalid-request", [["validation/too-big", "pageSize"]]]);
+    expect(await codeFor("0")).toEqual(["validation/invalid-request", [["validation/too-small", "pageSize"]]]);
+    expect(await codeFor("lots")).toEqual(["validation/invalid-request", [["validation/invalid-type", "pageSize"]]]);
   });
 
   test("coerces query fields inside a union option", async () => {
@@ -128,12 +128,13 @@ describe("validation", () => {
       }
     });
 
-    expect(error.message).toContain("Invalid input");
     const response = error.toResponse();
     const body = await response.json();
     expect(response.status).toBe(400);
-    expect(body.code).toContain("validation/");
-    expect(body.details.path).toBe("name");
+    expect(body.code).toBe("validation/invalid-request");
+    expect(body.details.issues).toEqual([
+      { path: "name", message: expect.any(String), code: "validation/invalid-type" },
+    ]);
   });
 
   test("rejects text/plain bodies for object body validation", async () => {
@@ -151,11 +152,10 @@ describe("validation", () => {
       }
     }, request);
 
-    expect(error.message).toContain("Unsupported request body content type");
     const response = error.toResponse();
     const body = await response.json();
     expect(response.status).toBe(415);
-    expect(body.code).toBe("validation/unsupported-content-type");
+    expect(body.code).toBe("request/unsupported-content-type");
     expect(body.details.contentType).toBe("text/plain");
   });
 
@@ -259,6 +259,21 @@ describe("validation", () => {
     });
   });
 
+  test("gives a request with several problems one code, whichever issue zod reports first", () => {
+    const schema = z.object({ name: z.string().max(2), count: z.number() });
+    const first = schema.safeParse({ name: "long", count: "x" });
+    const reordered = z.object({ count: z.number(), name: z.string().max(2) }).safeParse({ count: "x", name: "long" });
+    if (first.success || reordered.success) throw new Error("expected validation failure");
+
+    const parsed = parseZodError(first.error);
+    expect(parsed.code).toBe("validation/invalid-request");
+    expect(parseZodError(reordered.error).code).toBe("validation/invalid-request");
+    expect(parsed.details.issues.map((issue) => [issue.path, issue.code])).toEqual([
+      ["name", "validation/too-big"],
+      ["count", "validation/invalid-type"],
+    ]);
+  });
+
   test("reports the field missing from the union option a body came closest to", () => {
     const content = z.union([
       z.object({ plainText: z.string(), type: z.string() }),
@@ -271,9 +286,9 @@ describe("validation", () => {
     if (result.success) throw new Error("expected validation failure");
 
     const parsed = parseZodError(result.error);
-    expect(parsed.code).toBe("validation/invalid-type");
-    expect(parsed.details.path).toBe("content.type");
-    expect(parsed.details.issues.map((issue) => issue.path)).toEqual(["content.type"]);
+    expect(parsed.details.issues.map((issue) => [issue.code, issue.path])).toEqual([
+      ["validation/invalid-type", "content.type"],
+    ]);
   });
 
   test("reports a discriminated union's missing discriminator at its field", () => {
@@ -287,8 +302,8 @@ describe("validation", () => {
     const incomplete = schema.safeParse({ item: { kind: "b" } });
     if (missing.success || incomplete.success) throw new Error("expected validation failure");
 
-    expect(parseZodError(missing.error).details.path).toBe("item.kind");
-    expect(parseZodError(incomplete.error).details.path).toBe("item.size");
+    expect(parseZodError(missing.error).details.issues.map((issue) => issue.path)).toEqual(["item.kind"]);
+    expect(parseZodError(incomplete.error).details.issues.map((issue) => issue.path)).toEqual(["item.size"]);
   });
 
   test("parses zod issues into public-safe details", () => {
@@ -296,10 +311,9 @@ describe("validation", () => {
     if (result.success) throw new Error("expected validation failure");
 
     expect(parseZodError(result.error)).toEqual({
-      code: "validation/invalid-type",
+      code: "validation/invalid-request",
       message: expect.any(String),
       details: {
-        path: "count",
         issues: [
           {
             path: "count",
