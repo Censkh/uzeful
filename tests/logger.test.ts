@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SendableError } from "../src";
+import { SendableError, UzefulApp } from "../src";
 import { BunUzefulApp } from "../src/bun";
 import {
   colorFromLevel,
@@ -10,6 +10,65 @@ import {
   withSink,
 } from "../src/logger";
 import { RouteNotFoundError } from "../src/router";
+
+interface Line {
+  level: string;
+  text: string;
+}
+
+/** Sends one traced request whose handler throws `error` (or returns `response`) and returns the lines logged. */
+const trace = async (
+  outcome: { error: unknown } | { response: Response },
+  url = "https://api.example.com/v1/things?name=holiday.jpg&page=2",
+  options?: Parameters<typeof traceMiddleware>[0],
+): Promise<{ lines: Line[]; status: number }> => {
+  const lines: Line[] = [];
+  const write = (level: string) => (text: string) => lines.push({ level, text });
+  const app = new UzefulApp<Record<string, never>, Request>();
+  const previousVerbose = process.env.VERBOSE;
+  process.env.VERBOSE = "true";
+  const response = await withSink(
+    {
+      out: {
+        info: write("info"),
+        warn: write("warn"),
+        error: write("error"),
+        debug: write("debug"),
+      } as unknown as typeof console,
+      disableTime: true,
+    },
+    () =>
+      app.dispatch(
+        {
+          request: new Request(url, {
+            headers: {
+              "CF-Connecting-IP": "203.0.113.7",
+              "X-Forwarded-For": "203.0.113.7, 198.51.100.2",
+              "X-Real-IP": "203.0.113.7",
+              "True-Client-IP": "203.0.113.7",
+              Accept: "application/json",
+            },
+          }),
+          env: {},
+          waitUntil: () => {},
+          rawContext: {},
+        },
+        async () => {
+          await traceMiddleware(options)();
+          if ("error" in outcome) throw outcome.error;
+          return outcome.response;
+        },
+      ),
+  ).finally(() => {
+    if (previousVerbose === undefined) delete process.env.VERBOSE;
+    else process.env.VERBOSE = previousVerbose;
+  });
+  return { lines, status: response.status };
+};
+
+const infoOf = (line: Line) => JSON.parse(line.text.slice(line.text.indexOf("{")));
+
+const finished = (lines: Line[]) => lines.filter((line) => !line.text.includes("Calling "));
 
 describe("logger", () => {
   test("writes formatted objects, errors, and child sources to sinks", () => {
@@ -129,32 +188,85 @@ describe("logger", () => {
     expect(errors).toHaveLength(0);
   });
 
-  test("keeps a resource 404 in error logs", async () => {
-    const info: string[] = [];
-    const errors: string[] = [];
-    const previousVerbose = process.env.VERBOSE;
-    const app = new BunUzefulApp<Record<string, never>>();
-    const handler = app.fetch(
-      async () => {
-        await traceMiddleware()();
-        throw new SendableError({ status: 404, message: "Project not found", public: true });
+  test("logs a missing resource (404) at warn with its code, not as an error", async () => {
+    const { lines, status } = await trace(
+      {
+        error: new SendableError({
+          code: "test/project-missing",
+          status: 404,
+          message: "Project not found",
+          public: true,
+        }),
       },
-      { getEnv: () => ({}) },
+      "https://example.com/v1/projects/missing",
     );
+    expect(status).toBe(404);
+    expect(finished(lines).map((line) => line.level)).toEqual(["warn"]);
+    expect(infoOf(finished(lines)[0]!)).toMatchObject({ code: "test/project-missing", status: 404 });
+  });
 
-    process.env.VERBOSE = "true";
-    try {
-      await withSink(
-        { out: { info: (message) => info.push(message), error: (message) => errors.push(message) } as Console },
-        () => handler(new Request("https://example.com/v1/projects/missing")),
-      );
-    } finally {
-      if (previousVerbose === undefined) delete process.env.VERBOSE;
-      else process.env.VERBOSE = previousVerbose;
+  test("logs a client error a handler sends at warn, with its code and status", async () => {
+    const { lines, status } = await trace({
+      error: new SendableError({ code: "test/invalid-id", status: 400, public: true, message: "Bad ID" }),
+    });
+    expect(status).toBe(400);
+    expect(finished(lines).map((line) => line.level)).toEqual(["warn"]);
+    expect(infoOf(finished(lines)[0]!)).toMatchObject({ code: "test/invalid-id", status: 400 });
+    expect(infoOf(finished(lines)[0]!)).not.toHaveProperty("headers");
+  });
+
+  test("logs a missing route at info with its path only", async () => {
+    for (const outcome of [
+      { error: new RouteNotFoundError() },
+      { error: new SendableError({ code: "misc/route-not-found", status: 404, public: true }) },
+      { response: new Response("Not found", { status: 404 }) },
+    ]) {
+      const { lines, status } = await trace(outcome);
+      expect(status).toBe(404);
+      const [line, ...rest] = finished(lines);
+      expect(rest).toEqual([]);
+      expect(line!.level).toBe("info");
+      expect(line!.text).toContain("https://api.example.com/v1/things");
+      expect(line!.text).not.toContain("page=2");
+      expect(line!.text).not.toContain("application/json");
     }
+  });
 
-    expect(info).toHaveLength(1);
-    expect(errors[0]).toContain("Failed calling GET");
-    expect(errors[1]).toContain("Caused by: Error: Project not found");
+  test("logs server errors and unexpected exceptions at error, with their message", async () => {
+    for (const outcome of [
+      { error: new Error("database unavailable") },
+      { error: new SendableError({ code: "test/upstream", status: 503, message: "upstream down" }) },
+      { response: new Response("Internal error", { status: 500 }) },
+    ]) {
+      const { lines, status } = await trace(outcome);
+      expect(status).toBeGreaterThanOrEqual(500);
+      expect(finished(lines).every((line) => line.level === "error")).toBe(true);
+      expect(finished(lines)).not.toHaveLength(0);
+    }
+    const { lines } = await trace({ error: new Error("database unavailable") });
+    expect(finished(lines).some((line) => line.text.includes("database unavailable"))).toBe(true);
+  });
+
+  test("never logs the client's IP address", async () => {
+    for (const outcome of [
+      { error: new Error("boom") },
+      { error: new SendableError({ code: "test/forbidden", status: 403, public: true }) },
+      { response: new Response("ok") },
+    ]) {
+      const { lines } = await trace(outcome);
+      expect(lines.length).toBeGreaterThanOrEqual(2);
+      for (const line of lines) expect(line.text).not.toContain("203.0.113.7");
+    }
+  });
+
+  test("redacts the values of the given query parameters", async () => {
+    const { lines } = await trace({ response: new Response("ok") }, undefined, {
+      sensitiveQueryParameters: ["name"],
+    });
+    expect(lines.length).toBe(2);
+    for (const line of lines) {
+      expect(line.text).not.toContain("holiday.jpg");
+      expect(line.text).toContain("name=REDACTED");
+    }
   });
 });

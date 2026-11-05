@@ -1,3 +1,4 @@
+import { ErrorCode } from "sendable-error";
 import { uzeContextInternal } from "../Context";
 import { Priority, uzeBeforeResponse, uzeRequestId } from "../index";
 import { RouteNotFoundError } from "../router/RouteNotFoundError";
@@ -36,11 +37,27 @@ const SENSITIVE_HEADER_NAMES = new Set([
   "x-auth-token",
 ]);
 
-export const sanitizeRequestUrl = (requestUrl: string) => {
+/** Headers that carry the client's IP address, which is personal data and never logged. */
+export const CLIENT_ADDRESS_HEADER_NAMES: ReadonlySet<string> = new Set([
+  "cf-connecting-ip",
+  "cf-connecting-ipv6",
+  "cf-pseudo-ipv4",
+  "forwarded",
+  "true-client-ip",
+  "x-client-ip",
+  "x-cluster-client-ip",
+  "x-forwarded-for",
+  "x-real-ip",
+]);
+
+/** The URL with the values of credential parameters, and of `sensitiveParameters`, redacted. */
+export const sanitizeRequestUrl = (requestUrl: string, sensitiveParameters: readonly string[] = []) => {
   try {
     const url = new URL(requestUrl);
+    const extra = new Set(sensitiveParameters.map((name) => name.toLowerCase()));
     for (const [name] of url.searchParams) {
-      if (SENSITIVE_QUERY_PARAMETER_NAMES.has(name.toLowerCase())) {
+      const lowercaseName = name.toLowerCase();
+      if (SENSITIVE_QUERY_PARAMETER_NAMES.has(lowercaseName) || extra.has(lowercaseName)) {
         url.searchParams.set(name, "REDACTED");
       }
     }
@@ -50,8 +67,13 @@ export const sanitizeRequestUrl = (requestUrl: string) => {
   }
 };
 
+/** The headers without credentials, client IP addresses or `sensitiveHeaders`. */
 export const sanitizeRequestHeaders = (headers: Record<string, string>, sensitiveHeaders: readonly string[] = []) => {
-  const excludedNames = new Set([...SENSITIVE_HEADER_NAMES, ...sensitiveHeaders.map((name) => name.toLowerCase())]);
+  const excludedNames = new Set([
+    ...SENSITIVE_HEADER_NAMES,
+    ...CLIENT_ADDRESS_HEADER_NAMES,
+    ...sensitiveHeaders.map((name) => name.toLowerCase()),
+  ]);
   return Object.fromEntries(Object.entries(headers).filter(([name]) => !excludedNames.has(name.toLowerCase())));
 };
 
@@ -73,9 +95,23 @@ const DEFAULT_REQUEST_INFO_GETTER = (request: BaseRequest, sensitiveHeaders?: re
 
 export interface TraceMiddlewareOptions {
   sensitiveHeaders?: readonly string[];
+  /** Query parameters whose values are redacted from logged URLs, such as ones naming files. */
+  sensitiveQueryParameters?: readonly string[];
   requestInfoGetter?: RequestInfoGetter;
   extraRequestInfoGetter?: RequestInfoGetter;
 }
+
+const ROUTE_NOT_FOUND_CODE = new RouteNotFoundError().getCode().getId();
+
+/** The URL without its query, for lines about missing routes: their query is never useful. */
+const withoutQuery = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+};
 
 export const traceMiddleware =
   (options?: TraceMiddlewareOptions): Middleware =>
@@ -84,50 +120,67 @@ export const traceMiddleware =
       options?.requestInfoGetter ??
       ((request: BaseRequest) => DEFAULT_REQUEST_INFO_GETTER(request, options?.sensitiveHeaders));
     const { request, startMs } = uzeContextInternal();
-    const requestUrl = sanitizeRequestUrl(request.url);
+    const requestUrl = sanitizeRequestUrl(request.url, options?.sensitiveQueryParameters);
+    const method = request.method.toUpperCase();
 
     const calculateRequestInfo = () => {
       const requestInfo: any = requestInfoGetter(request);
       if (options?.extraRequestInfoGetter) {
         Object.assign(requestInfo, options.extraRequestInfoGetter(request));
       }
+      if (typeof requestInfo.url === "string") {
+        requestInfo.url = sanitizeRequestUrl(requestInfo.url, options?.sensitiveQueryParameters);
+      }
 
       requestInfo.requestId = uzeRequestId();
       return requestInfo;
     };
 
-    logger().info("App", `Calling ${request.method.toUpperCase()} ${requestUrl}`, calculateRequestInfo());
+    logger().info("App", `Calling ${method} ${requestUrl}`, calculateRequestInfo());
 
+    // Only server errors (5xx, which unexpected exceptions become) are logged as errors. A client
+    // error the handler meant to send (4xx, such as a validation error or a missing resource) is
+    // expected: it is logged at warn with its code and status, without headers. A path nothing
+    // serves (a route not found, or a 404 response such as a missing file) is logged at info
+    // with its path only.
     uzeBeforeResponse(
       (response, error) => {
         const end = Date.now();
         const requestInfo = calculateRequestInfo();
         requestInfo.durationMs = end - startMs;
-        if (error instanceof RouteNotFoundError) {
-          delete requestInfo.headers;
-          logger().info("App", `Finished calling ${request.method.toUpperCase()} ${requestUrl} got status code 404`, {
-            ...requestInfo,
-            status: 404,
+        const status = response.status;
+        const code = error ? ErrorCode.get(error as Error).getId() : undefined;
+        if (status === 404 && (!error || code === ROUTE_NOT_FOUND_CODE)) {
+          logger().info("App", `Finished calling ${method} ${withoutQuery(requestUrl)} got status code 404`, {
+            method,
+            url: withoutQuery(requestUrl),
+            requestId: requestInfo.requestId,
+            durationMs: requestInfo.durationMs,
+            status,
           });
-        } else if (error) {
+        } else if (error && status < 500) {
+          delete requestInfo.headers;
+          logger().warn("App", `Finished calling ${method} ${requestUrl} got status code ${status}`, {
+            ...requestInfo,
+            status,
+            code,
+          });
+        } else if (error || status >= 500) {
           logger().error(
             "App",
-            `Failed calling ${request.method.toUpperCase()} ${requestUrl} got status code ${response.status}`,
+            `Failed calling ${method} ${requestUrl} got status code ${status}`,
             {
               ...requestInfo,
-              status: response.status,
+              status,
+              ...(code ? { code } : {}),
             },
-            error,
+            error as Error | undefined,
           );
         } else {
-          logger().info(
-            "App",
-            `Success calling ${request.method.toUpperCase()} ${requestUrl} got status code ${response.status}`,
-            {
-              ...requestInfo,
-              status: response.status,
-            },
-          );
+          logger().info("App", `Success calling ${method} ${requestUrl} got status code ${status}`, {
+            ...requestInfo,
+            status,
+          });
         }
       },
       { priority: Priority.LATE },
