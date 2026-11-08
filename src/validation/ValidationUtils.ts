@@ -90,7 +90,8 @@ export const parseZodError = (error: ZodError): ParsedValidationError => {
     code: VALIDATION_ERROR_CODES.INVALID_REQUEST,
     message:
       parsedIssues.length === 1
-        ? parsedIssues[0].message
+        ? // The field comes first so the message alone says where to look.
+          [parsedIssues[0].path, parsedIssues[0].message].filter(Boolean).join(": ")
         : `The request has ${parsedIssues.length} problems; details.issues lists each.`,
     details: { issues: parsedIssues },
   };

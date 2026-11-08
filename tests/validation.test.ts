@@ -135,6 +135,8 @@ describe("validation", () => {
     expect(body.details.issues).toEqual([
       { path: "name", message: expect.any(String), code: "validation/invalid-type" },
     ]);
+    // A lone issue's message names the field, for clients that only show the message.
+    expect(body.message.startsWith("name: ")).toBe(true);
   });
 
   test("rejects text/plain bodies for object body validation", async () => {
