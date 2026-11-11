@@ -299,3 +299,34 @@ describe("cache", () => {
     nowSpy.mockRestore();
   });
 });
+
+test.each(["single", "bulk"] as const)(
+  "%s cache invalidation cannot be undone by an in-flight background write",
+  async (mode) => {
+    const store = new InMemoryKeyStore();
+    const write = store.setMany.bind(store);
+    const started = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    spyOn(store, "setMany").mockImplementation(async (entries) => {
+      started.resolve();
+      await release.promise;
+      await write(entries);
+    });
+    const namespace = createCacheNamespace<string>({ id: "invalidation", type: "edge" });
+    const uze = new UzefulApp<Record<string, unknown>, Request>({
+      cache: { stores: { edge: async () => store } },
+    });
+    const context = { request: new Request("https://example.com"), env: {}, waitUntil: () => {}, rawContext: {} };
+    await uze.execute(context, async () => {
+      const cache = uzeCacheState(namespace);
+      cache.setItemInBackground("key", "stale");
+      await started.promise;
+      const cleared = mode === "single" ? cache.clearItem("key") : cache.clearItems(["key"]);
+      release.resolve();
+      await cleared;
+    });
+    await uze.execute(context, async () => {
+      expect(await uzeCacheState(namespace).getItem("key")).toBeUndefined();
+    });
+  },
+);

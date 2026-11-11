@@ -298,6 +298,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
       return rest;
     });
 
+    await getBackgroundCacheWriteBatches()?.[namespace.type]?.flushPromise;
     await keyStore.delete(cacheKey);
     debugLog("Delete key store", { key: cacheKey });
   };
@@ -430,6 +431,7 @@ export const uzeCacheState = <T>(namespace: CacheNamespace<T>) => {
     });
 
     const keyStore = await getKeyStore();
+    await getBackgroundCacheWriteBatches()?.[namespace.type]?.flushPromise;
     await keyStore.deleteMany(cacheKeys);
     debugLog("Delete many key store", {
       count: cacheKeys.length,
