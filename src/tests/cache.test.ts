@@ -269,11 +269,24 @@ describe("cache", () => {
     expect(await store.get("soon")).toBeNull();
   });
 
-  test("KVKeyStore sends one write per key per interval, keeping only the latest value", async () => {
+  test("KVKeyStore stores an update as soon as the key's previous write is stored", async () => {
+    // A cached value is mostly invalidated by writing its update, which other isolates must read at
+    // once; KV's per-key limit is handled when KV rejects a write, not by holding writes back.
     const kv = recordingKV();
-    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+    const store = new KVKeyStore(kv.binding);
 
-    // The first write goes at once; the rest of the burst collapses into its last value.
+    await store.set("project", { orgId: "org-1" });
+    const started = performance.now();
+    await store.set("project", { orgId: "org-2" });
+    expect(performance.now() - started).toBeLessThan(100);
+    expect(await kv.binding.get("project", "json")).toEqual({ orgId: "org-2" });
+  });
+
+  test("KVKeyStore sends a burst's first and last writes to a key, and settles every caller", async () => {
+    const kv = recordingKV();
+    const store = new KVKeyStore(kv.binding);
+
+    // The first write is in flight while the rest arrive; only the newest of those is sent after it.
     const burst = [1, 2, 3, 4].map((value) => store.set("project", { value }));
     const other = store.set("other", { value: "independent" });
     await Promise.all([...burst, other]);
@@ -283,19 +296,17 @@ describe("cache", () => {
       ["other", '{"value":"independent"}'],
       ["project", '{"value":4}'],
     ]);
-    const projectWrites = kv.writes.filter(({ key }) => key === "project");
-    expect(projectWrites[1]!.at - projectWrites[0]!.at).toBeGreaterThanOrEqual(45);
     expect(await store.get("project")).toEqual({ value: 4 });
   });
 
   test("KVKeyStore lets a deletion replace a write it has not sent, so invalidation stands", async () => {
     const kv = recordingKV();
-    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+    const store = new KVKeyStore(kv.binding);
 
-    await store.set("asset", { status: "pending" });
+    const pending = store.set("asset", { status: "pending" });
     const stale = store.set("asset", { status: "stale" });
     const invalidation = store.delete("asset");
-    await Promise.all([stale, invalidation]);
+    await Promise.all([pending, stale, invalidation]);
 
     expect(kv.writes.map(({ type, value }) => [type, value])).toEqual([
       ["put", '{"status":"pending"}'],
@@ -307,31 +318,35 @@ describe("cache", () => {
   test("KVKeyStore coalesces writes across stores that share a scope", async () => {
     const kv = recordingKV();
     const scope = {};
-    const first = new KVKeyStore(kv.binding, { scope, minWriteIntervalMs: 50 });
-    const second = new KVKeyStore(kv.binding, { scope, minWriteIntervalMs: 50 });
-    const unscoped = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+    const first = new KVKeyStore(kv.binding, { scope });
+    const second = new KVKeyStore(kv.binding, { scope });
+    const unscoped = new KVKeyStore(kv.binding);
 
-    await first.set("org", { plan: "free" });
-    const shared = [second.set("org", { plan: "team" }), first.set("org", { plan: "pro" })];
-    await Promise.all(shared);
-    expect(kv.writes.map(({ value }) => value)).toEqual(['{"plan":"free"}', '{"plan":"pro"}']);
-
-    // A store outside the scope has its own interval, as separate requests' stores always did.
-    await unscoped.set("org", { plan: "enterprise" });
-    expect(kv.writes).toHaveLength(3);
+    // The scoped stores queue behind one in-flight write; the unscoped store sends its own.
+    await Promise.all([
+      first.set("org", { plan: "free" }),
+      second.set("org", { plan: "team" }),
+      first.set("org", { plan: "pro" }),
+      unscoped.set("org", { plan: "enterprise" }),
+    ]);
+    expect(kv.writes.map(({ value }) => value)).toEqual(['{"plan":"free"}', '{"plan":"enterprise"}', '{"plan":"pro"}']);
   });
 
-  test("KVKeyStore retries a rate-limited write and rejects once its retries run out", async () => {
-    const kv = recordingKV({ rateLimited: 2 });
-    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 5 });
+  test("KVKeyStore backs off a rate-limited write and sends the newest write when it retries", async () => {
+    const kv = recordingKV({ rateLimited: 1 });
+    const store = new KVKeyStore(kv.binding, { rateLimitBackoffMs: 20 });
 
-    await store.set("busy", { value: 1 });
-    expect(kv.rejected).toBe(2);
-    expect(await store.get("busy")).toEqual({ value: 1 });
+    const rejected = store.set("busy", { value: 1 });
+    await Bun.sleep(5);
+    // Arrives while the first write waits out the limit, so the retry stores it instead.
+    const newer = store.set("busy", { value: 2 });
+    await Promise.all([rejected, newer]);
+    expect(kv.rejected).toBe(1);
+    expect(kv.writes.map(({ value }) => value)).toEqual(['{"value":2}']);
 
     const exhausted = recordingKV({ rateLimited: Number.POSITIVE_INFINITY });
-    const failing = new KVKeyStore(exhausted.binding, { minWriteIntervalMs: 1 });
-    await expect(failing.set("busy", { value: 2 })).rejects.toThrow("KV PUT failed: 429 Too Many Requests");
+    const failing = new KVKeyStore(exhausted.binding, { rateLimitBackoffMs: 1 });
+    await expect(failing.set("busy", { value: 3 })).rejects.toThrow("KV PUT failed: 429 Too Many Requests");
     // The first attempt and four retries.
     expect(exhausted.rejected).toBe(5);
   });

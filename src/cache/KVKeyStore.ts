@@ -3,11 +3,9 @@ import type { KeyStore } from "./KeyStore";
 
 /** Cloudflare KV rejects expirations less than 60 seconds away. */
 export const KV_MIN_TTL_SECONDS = 60;
-/** Cloudflare KV accepts at most one write a second to the same key. */
-export const KV_MIN_WRITE_INTERVAL_MS = 1000;
+/** Cloudflare KV rejects a second write to a key within a second; a rejected write waits this long. */
+export const KV_RATE_LIMIT_BACKOFF_MS = 1000;
 const MAX_RATE_LIMIT_RETRIES = 4;
-/** Idle keys are forgotten once this many are tracked, after their write interval has passed. */
-const MAX_TRACKED_KEYS = 1000;
 
 const putOptions = (expiresAt?: number) =>
   expiresAt
@@ -25,34 +23,31 @@ type Waiter = { resolve: () => void; reject: (error: unknown) => void };
 interface KeyWrites {
   next?: Write;
   waiters: Waiter[];
-  lastWriteAt: number;
-  draining: boolean;
 }
 
 /**
- * Writes each key at most once per interval. A key's latest write replaces any it hasn't sent yet,
- * so a burst of writes to one key sends its last value (or deletion) and every caller in the burst
- * settles when that is stored. Rate-limited writes are retried unless a newer write replaces them.
+ * Sends each key's writes one at a time, in order, each as soon as the one before it is stored, so a
+ * key's newest value or deletion reaches KV without waiting: an update is how most cached values
+ * are invalidated. Writes that arrive while one is in flight replace each other, so a burst stores
+ * its first and last values and every caller settles once its value, or a newer one, is stored.
+ * KV rejects a second write to a key within a second; a rejected write backs off, doubling each
+ * time, and then sends whichever write is newest.
  */
 class KVWriteCoalescer {
   private keys = new Map<string, KeyWrites>();
 
   constructor(
     private readonly kv: KVNamespace,
-    private readonly minWriteIntervalMs: number,
+    private readonly rateLimitBackoffMs: number,
   ) {}
 
   write(key: string, write: Write): Promise<void> {
-    let state = this.keys.get(key);
-    if (!state) {
-      this.forgetIdleKeys();
-      state = { waiters: [], lastWriteAt: Number.NEGATIVE_INFINITY, draining: false };
-      this.keys.set(key, state);
-    }
+    const queued = this.keys.get(key);
+    const state = queued ?? { waiters: [] };
     state.next = write;
     const settled = new Promise<void>((resolve, reject) => state.waiters.push({ resolve, reject }));
-    if (!state.draining) {
-      state.draining = true;
+    if (!queued) {
+      this.keys.set(key, state);
       void this.drain(key, state);
     }
     return settled;
@@ -61,8 +56,6 @@ class KVWriteCoalescer {
   private async drain(key: string, state: KeyWrites) {
     let retries = 0;
     while (state.next) {
-      const wait = state.lastWriteAt + this.minWriteIntervalMs * 2 ** retries - Date.now();
-      if (wait > 0) await sleep(wait);
       const write = state.next;
       const waiters = state.waiters;
       state.next = undefined;
@@ -70,32 +63,24 @@ class KVWriteCoalescer {
       try {
         if (write.type === "put") await this.kv.put(key, write.value, putOptions(write.expiresAt));
         else await this.kv.delete(key);
-        state.lastWriteAt = Date.now();
         retries = 0;
         for (const waiter of waiters) waiter.resolve();
       } catch (error) {
-        state.lastWriteAt = Date.now();
-        if (state.next) {
-          // A newer write decides what the key holds; its callers' and these settle with it.
+        if (isRateLimited(error) && retries < MAX_RATE_LIMIT_RETRIES) {
+          await sleep(this.rateLimitBackoffMs * 2 ** retries++);
+          // A write that arrived meanwhile decides what the key holds; these callers settle with it.
+          state.next ??= write;
           state.waiters.unshift(...waiters);
+        } else if (state.next) {
           retries = 0;
-        } else if (isRateLimited(error) && retries < MAX_RATE_LIMIT_RETRIES) {
-          retries++;
-          state.next = write;
-          state.waiters = waiters;
+          state.waiters.unshift(...waiters);
         } else {
           retries = 0;
           for (const waiter of waiters) waiter.reject(error);
         }
       }
     }
-    state.draining = false;
-  }
-
-  private forgetIdleKeys() {
-    if (this.keys.size < MAX_TRACKED_KEYS) return;
-    const idleBefore = Date.now() - this.minWriteIntervalMs;
-    for (const [key, state] of this.keys) if (!state.draining && state.lastWriteAt <= idleBefore) this.keys.delete(key);
+    this.keys.delete(key);
   }
 }
 
@@ -108,8 +93,8 @@ export interface KVKeyStoreOptions {
    * request's context limits it to that request. Without one, each store coalesces its own.
    */
   scope?: object;
-  /** The least time between writes to one key; KV's limit by default. */
-  minWriteIntervalMs?: number;
+  /** How long a rate-limited write first waits before it is retried; KV's one second by default. */
+  rateLimitBackoffMs?: number;
 }
 
 export class KVKeyStore implements KeyStore {
@@ -119,10 +104,10 @@ export class KVKeyStore implements KeyStore {
     private readonly kv: KVNamespace,
     options: KVKeyStoreOptions = {},
   ) {
-    const interval = options.minWriteIntervalMs ?? KV_MIN_WRITE_INTERVAL_MS;
+    const backoff = options.rateLimitBackoffMs ?? KV_RATE_LIMIT_BACKOFF_MS;
     const { scope } = options;
     if (!scope) {
-      this.writes = new KVWriteCoalescer(kv, interval);
+      this.writes = new KVWriteCoalescer(kv, backoff);
       return;
     }
     let byNamespace = sharedCoalescers.get(scope);
@@ -132,7 +117,7 @@ export class KVKeyStore implements KeyStore {
     }
     let writes = byNamespace.get(kv);
     if (!writes) {
-      writes = new KVWriteCoalescer(kv, interval);
+      writes = new KVWriteCoalescer(kv, backoff);
       byNamespace.set(kv, writes);
     }
     this.writes = writes;
