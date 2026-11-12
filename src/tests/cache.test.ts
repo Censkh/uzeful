@@ -269,6 +269,73 @@ describe("cache", () => {
     expect(await store.get("soon")).toBeNull();
   });
 
+  test("KVKeyStore sends one write per key per interval, keeping only the latest value", async () => {
+    const kv = recordingKV();
+    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+
+    // The first write goes at once; the rest of the burst collapses into its last value.
+    const burst = [1, 2, 3, 4].map((value) => store.set("project", { value }));
+    const other = store.set("other", { value: "independent" });
+    await Promise.all([...burst, other]);
+
+    expect(kv.writes.map(({ key, value }) => [key, value])).toEqual([
+      ["project", '{"value":1}'],
+      ["other", '{"value":"independent"}'],
+      ["project", '{"value":4}'],
+    ]);
+    const projectWrites = kv.writes.filter(({ key }) => key === "project");
+    expect(projectWrites[1]!.at - projectWrites[0]!.at).toBeGreaterThanOrEqual(45);
+    expect(await store.get("project")).toEqual({ value: 4 });
+  });
+
+  test("KVKeyStore lets a deletion replace a write it has not sent, so invalidation stands", async () => {
+    const kv = recordingKV();
+    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+
+    await store.set("asset", { status: "pending" });
+    const stale = store.set("asset", { status: "stale" });
+    const invalidation = store.delete("asset");
+    await Promise.all([stale, invalidation]);
+
+    expect(kv.writes.map(({ type, value }) => [type, value])).toEqual([
+      ["put", '{"status":"pending"}'],
+      ["delete", undefined],
+    ]);
+    expect(await store.get("asset")).toBeNull();
+  });
+
+  test("KVKeyStore coalesces writes across stores that share a scope", async () => {
+    const kv = recordingKV();
+    const scope = {};
+    const first = new KVKeyStore(kv.binding, { scope, minWriteIntervalMs: 50 });
+    const second = new KVKeyStore(kv.binding, { scope, minWriteIntervalMs: 50 });
+    const unscoped = new KVKeyStore(kv.binding, { minWriteIntervalMs: 50 });
+
+    await first.set("org", { plan: "free" });
+    const shared = [second.set("org", { plan: "team" }), first.set("org", { plan: "pro" })];
+    await Promise.all(shared);
+    expect(kv.writes.map(({ value }) => value)).toEqual(['{"plan":"free"}', '{"plan":"pro"}']);
+
+    // A store outside the scope has its own interval, as separate requests' stores always did.
+    await unscoped.set("org", { plan: "enterprise" });
+    expect(kv.writes).toHaveLength(3);
+  });
+
+  test("KVKeyStore retries a rate-limited write and rejects once its retries run out", async () => {
+    const kv = recordingKV({ rateLimited: 2 });
+    const store = new KVKeyStore(kv.binding, { minWriteIntervalMs: 5 });
+
+    await store.set("busy", { value: 1 });
+    expect(kv.rejected).toBe(2);
+    expect(await store.get("busy")).toEqual({ value: 1 });
+
+    const exhausted = recordingKV({ rateLimited: Number.POSITIVE_INFINITY });
+    const failing = new KVKeyStore(exhausted.binding, { minWriteIntervalMs: 1 });
+    await expect(failing.set("busy", { value: 2 })).rejects.toThrow("KV PUT failed: 429 Too Many Requests");
+    // The first attempt and four retries.
+    expect(exhausted.rejected).toBe(5);
+  });
+
   test("UpstashKeyStore maps expirations to redis TTLs and pipelines bulk writes", async () => {
     const nowSpy = spyOn(Date, "now").mockReturnValue(1_000);
     const pipeline = {
@@ -330,3 +397,32 @@ test.each(["single", "bulk"] as const)(
     });
   },
 );
+
+/** A KV binding that records each write it accepts and rate-limits the first `rateLimited` puts. */
+function recordingKV({ rateLimited = 0 } = {}) {
+  const values = new Map<string, string>();
+  const writes: { type: "put" | "delete"; key: string; value?: string; at: number }[] = [];
+  const kv = {
+    writes,
+    rejected: 0,
+    binding: {
+      get: async (key: string) => {
+        const value = values.get(key);
+        return value === undefined ? null : JSON.parse(value);
+      },
+      put: async (key: string, value: string) => {
+        if (kv.rejected < rateLimited) {
+          kv.rejected++;
+          throw new Error("KV PUT failed: 429 Too Many Requests");
+        }
+        values.set(key, value);
+        writes.push({ type: "put", key, value, at: performance.now() });
+      },
+      delete: async (key: string) => {
+        values.delete(key);
+        writes.push({ type: "delete", key, at: performance.now() });
+      },
+    } as unknown as ConstructorParameters<typeof KVKeyStore>[0],
+  };
+  return kv;
+}
